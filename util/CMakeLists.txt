@@ -26,3 +26,6 @@ find_package (sharg 1.0 REQUIRED)
 
 add_executable (fpr_correction_check fpr_correction_check.cpp)
 target_link_libraries (fpr_correction_check seqan::hibf sharg::sharg)
+
+add_executable (histogram histogram.cpp)
+target_link_libraries (histogram seqan::hibf sharg::sharg)
