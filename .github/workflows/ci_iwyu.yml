@@ -95,10 +95,9 @@ jobs:
       - name: Run clang-format
         if: ${{ steps.changed_files.outputs.cpp_list }}
         run: |
-          sudo apt-get remove --yes libllvm15*
-          install clang-format-15
+          install clang-format-17
           cd hibf
-          clang-format-15 --style=file -i ${{ steps.changed_files.outputs.cpp_list }}
+          clang-format-17 --style=file -i ${{ steps.changed_files.outputs.cpp_list }}
           git add .
 
       - name: Import GPG key

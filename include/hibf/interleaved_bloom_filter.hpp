@@ -544,8 +544,7 @@ public:
         result_buffer(next_multiple_of_64(ibf.bin_count())) // Ensure large enough capacity.
     {
         result_buffer.resize(ibf.bin_count()); // Resize to actual requested size.
-        // Silences llvm's ASAN container-overflow warning.
-#    if defined(_LIBCPP_VERSION) && !defined(_LIBCPP_HAS_NO_ASAN)
+#    if defined(_LIBCPP_VERSION) && !defined(_LIBCPP_HAS_NO_ASAN) // Silences llvm's ASAN container-overflow warning.
         __sanitizer_annotate_contiguous_container(result_buffer.data(),
                                                   result_buffer.data() + result_buffer.capacity(),
                                                   result_buffer.data() + result_buffer.size(),
