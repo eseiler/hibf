@@ -27,15 +27,15 @@ defaults:
 jobs:
   build:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     if: github.repository_owner == 'seqan' || github.event_name == 'workflow_dispatch' || github.event.label.name == 'lint'
     strategy:
       fail-fast: true
       matrix:
         include:
-          - name: "gcc13"
-            compiler: "gcc-13"
+          - name: "gcc14"
+            compiler: "gcc-14"
             build: coverage
             build_type: Coverage
 
