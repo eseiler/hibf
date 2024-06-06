@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: hibf
-          token: ${{ secrets.SEQAN_ACTIONS_PAT }}
+          token: ${{ github.token }}
 
       - name: Build IWYU
         run: |
@@ -85,21 +85,21 @@ jobs:
           clang-format-18 --style=file -i ${{ steps.changed_files.outputs.cpp_list }}
           git add .
 
-      - name: Import GPG key
-        if: ${{ steps.changed_files.outputs.cpp_list }}
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.SEQAN_ACTIONS_GPG_KEY }}
-          passphrase: ${{ secrets.SEQAN_ACTIONS_GPG_PASSPHRASE }}
-          git_user_signingkey: true
-          git_commit_gpgsign: true
-          workdir: hibf
+      # - name: Import GPG key
+      #   if: ${{ steps.changed_files.outputs.cpp_list }}
+      #   uses: crazy-max/ghaction-import-gpg@v6
+      #   with:
+      #     gpg_private_key: ${{ secrets.SEQAN_ACTIONS_GPG_KEY }}
+      #     passphrase: ${{ secrets.SEQAN_ACTIONS_GPG_PASSPHRASE }}
+      #     git_user_signingkey: true
+      #     git_commit_gpgsign: true
+      #     workdir: hibf
 
       - name: Open PR
         if: ${{ steps.changed_files.outputs.cpp_list }}
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.SEQAN_ACTIONS_PAT }}
+          token: ${{ github.token }}
           path: hibf
           commit-message: "[MISC] IWYU"
           committer: "seqan-actions[bot] <seqan-actions@users.noreply.github.com>"
