@@ -39,6 +39,7 @@
 #define ROBIN_HOOD_VERSION_MINOR 11 // for adding functionality in a backwards-compatible manner
 #define ROBIN_HOOD_VERSION_PATCH 5  // for backwards-compatible bug fixes
 
+// IWYU pragma: begin_exports
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -52,6 +53,7 @@
 #if __cplusplus >= 201703L
 #    include <string_view>
 #endif
+// IWYU pragma: end_exports
 
 // #define ROBIN_HOOD_LOG_ENABLED
 #ifdef ROBIN_HOOD_LOG_ENABLED
