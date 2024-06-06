@@ -38,6 +38,8 @@ jobs:
 
       - name: Build IWYU
         run: |
+          apt-get update
+          apt-get install --yes libstdc++-14-dev
           mkdir iwyu && cd iwyu
           git clone https://github.com/include-what-you-use/include-what-you-use.git --branch 0.22
           mkdir build && cd build
@@ -53,7 +55,7 @@ jobs:
       - name: Configure Test
         run: |
           mkdir build && cd build
-          cmake ../hibf/test/iwyu -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-stdlib=libc++"
+          cmake ../hibf/test/iwyu -DCMAKE_BUILD_TYPE=Release
 
       - name: Run Test
         working-directory: build
