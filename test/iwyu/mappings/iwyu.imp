@@ -7,9 +7,9 @@
 # Adapted other mappings for visibility errors
 # Added mapping for gtest and std::filesystem
 [
-  #{ ref: gcc.libc.imp },
-  #{ ref: gcc.symbols.imp },
-  #{ ref: gcc.stl.headers.imp },
+  { ref: gcc.libc.imp },
+  { ref: gcc.symbols.imp },
+  { ref: gcc.stl.headers.imp },
   { ref: stl.c.headers.imp },
   { ref: stl.public.imp },
   { ref: libcxx.imp },
