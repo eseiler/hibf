@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2016-2024, Knut Reinert & MPI für molekulare Genetik
 # SPDX-License-Identifier: BSD-3-Clause
 
-cmake_minimum_required (VERSION 3.5...3.12)
+cmake_minimum_required (VERSION 3.5...3.30)
 
 # ----------------------------------------------------------------------------
 # Greeter
@@ -258,38 +258,47 @@ option (HIBF_LTO_BUILD "Use Link Time Optimisation." ON)
 if (HIBF_IS_DEBUG OR NOT HIBF_LTO_BUILD)
     hibf_config_print ("Link Time Optimisation:     disabled")
 else ()
-    # CMake's check_ipo_supported uses hardcoded lto flags
-    # macOS GCC supports -flto-auto, but not the hardcoded flag "-fno-fat-lto-objects"
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND NOT "${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
-        set (HIBF_LTO_FLAGS "-flto=auto -ffat-lto-objects")
-    else ()
-        set (HIBF_LTO_FLAGS "-flto=auto")
-    endif ()
-
-    set (LTO_CMAKE_SOURCE
-         "cmake_minimum_required(VERSION ${CMAKE_VERSION})\nproject(lto-test LANGUAGES CXX)
-          cmake_policy(SET CMP0069 NEW)\nadd_library(foo foo.cpp)\nadd_executable(boo main.cpp)
-          target_link_libraries(boo PUBLIC foo)")
-    set (LTO_FOO_CPP "int foo(){return 0x42;}")
-    set (LTO_MAIN_CPP "int foo();int main(){return foo();}")
-    set (testdir "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/lto-test")
-    set (bindir "${testdir}/bin")
-    set (srcdir "${testdir}/src")
-    file (MAKE_DIRECTORY "${bindir}")
-    file (MAKE_DIRECTORY "${srcdir}")
-    file (WRITE "${srcdir}/foo.cpp" "${LTO_FOO_CPP}")
-    file (WRITE "${srcdir}/main.cpp" "${LTO_MAIN_CPP}")
-    file (WRITE "${srcdir}/CMakeLists.txt" "${LTO_CMAKE_SOURCE}")
-    try_compile (HIBF_HAS_LTO "${bindir}"
-                 "${srcdir}" "lto-test"
-                 CMAKE_FLAGS "-DCMAKE_VERBOSE_MAKEFILE=ON" "-DCMAKE_CXX_FLAGS:STRING=${HIBF_LTO_FLAGS}"
-                 OUTPUT_VARIABLE output)
-    if (HIBF_HAS_LTO)
+    include(CheckIPOSupported)
+    check_ipo_supported (RESULT result OUTPUT output)
+    if (result)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
         hibf_config_print ("Link Time Optimisation:     enabled")
-        set (HIBF_CXX_FLAGS "${HIBF_CXX_FLAGS} ${HIBF_LTO_FLAGS}")
     else ()
-        hibf_config_print ("Link Time Optimisation:     not available")
+        hibf_config_print ("Link Time Optimisation:     disabled")
+        hibf_config_print("${output}")
     endif ()
+    # # CMake's check_ipo_supported uses hardcoded lto flags
+    # # macOS GCC supports -flto-auto, but not the hardcoded flag "-fno-fat-lto-objects"
+    # if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND NOT "${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
+    #     set (HIBF_LTO_FLAGS "-flto=auto -fno-fat-lto-objects")
+    # else ()
+    #     set (HIBF_LTO_FLAGS "-flto=auto")
+    # endif ()
+
+    # set (LTO_CMAKE_SOURCE
+    #      "cmake_minimum_required(VERSION ${CMAKE_VERSION})\nproject(lto-test LANGUAGES CXX)
+    #       cmake_policy(SET CMP0069 NEW)\nadd_library(foo foo.cpp)\nadd_executable(boo main.cpp)
+    #       target_link_libraries(boo PUBLIC foo)")
+    # set (LTO_FOO_CPP "int foo(){return 0x42;}")
+    # set (LTO_MAIN_CPP "int foo();int main(){return foo();}")
+    # set (testdir "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/lto-test")
+    # set (bindir "${testdir}/bin")
+    # set (srcdir "${testdir}/src")
+    # file (MAKE_DIRECTORY "${bindir}")
+    # file (MAKE_DIRECTORY "${srcdir}")
+    # file (WRITE "${srcdir}/foo.cpp" "${LTO_FOO_CPP}")
+    # file (WRITE "${srcdir}/main.cpp" "${LTO_MAIN_CPP}")
+    # file (WRITE "${srcdir}/CMakeLists.txt" "${LTO_CMAKE_SOURCE}")
+    # try_compile (HIBF_HAS_LTO "${bindir}"
+    #              "${srcdir}" "lto-test"
+    #              CMAKE_FLAGS "-DCMAKE_VERBOSE_MAKEFILE=ON" "-DCMAKE_CXX_FLAGS:STRING=${HIBF_LTO_FLAGS}"
+    #              OUTPUT_VARIABLE output)
+    # if (HIBF_HAS_LTO)
+    #     hibf_config_print ("Link Time Optimisation:     enabled")
+    #     set (HIBF_CXX_FLAGS "${HIBF_CXX_FLAGS} ${HIBF_LTO_FLAGS}")
+    # else ()
+    #     hibf_config_print ("Link Time Optimisation:     not available")
+    # endif ()
 endif ()
 
 # ----------------------------------------------------------------------------
