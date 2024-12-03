@@ -54,6 +54,12 @@ public:
         type{data_type::ibf}
     {}
 
+    explicit constexpr insert_iterator(ibf_t & ibf, size_t ibf_bin_index, bool) :
+        ptr{std::addressof(ibf)},
+        ibf_bin_idx{ibf_bin_index},
+        type{data_type::ibf2}
+    {}
+
     explicit constexpr insert_iterator(function_t & fun) : ptr{std::addressof(fun)}, type{data_type::function}
     {}
 
@@ -72,6 +78,9 @@ public:
             break;
         case data_type::ibf:
             static_cast<ibf_t *>(ptr)->emplace(value, static_cast<bin_index>(ibf_bin_idx));
+            break;
+        case data_type::ibf2:
+            static_cast<ibf_t *>(ptr)->emplace_exists(value, static_cast<bin_index>(ibf_bin_idx));
             break;
         default:
             assert(type == data_type::function);
@@ -103,6 +112,7 @@ private:
         unordered_set,
         sketch,
         ibf,
+        ibf2,
         function
     };
 
