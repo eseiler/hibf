@@ -65,10 +65,11 @@ jobs:
       - name: Apply changes
         working-directory: build
         run: |
-          fix_includes.py --nosafe_headers \
-                          --comments \
-                          --noreorder \
-                          --ignore_re ".*/include/hibf/contrib/.*" < out.txt
+          /home/infri/iwyu/install/bin/fix_includes.py --nosafe_headers \
+                                                       --comments \
+                                                       --noreorder \
+                                                       --ignore_re ".*/include/hibf/contrib/.*" \
+                                                       --ignore_re ".*/.cache/CPM/.*" < out.txt
 
       - name: Add changes
         id: changed_files
