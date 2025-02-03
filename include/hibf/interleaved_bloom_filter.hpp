@@ -12,8 +12,8 @@
 #include <algorithm>   // for fill
 #include <array>       // for array
 #include <cassert>     // for assert
-#include <cinttypes>   // for uint32_t, uint16_t, uint64_t
 #include <concepts>    // for integral, same_as, unsigned_integral
+#include <cstdint>     // for uint32_t, uint16_t, uint64_t
 #include <cstring>     // for size_t
 #include <memory>      // for addressof
 #include <ranges>      // for range, range_reference_t, range_value_t, forward_range, input_...
@@ -30,7 +30,7 @@
 #include <hibf/misc/bit_vector.hpp>           // for bit_vector
 #include <hibf/misc/counting_vector.hpp>      // for counting_vector
 #include <hibf/misc/next_multiple_of_64.hpp>  // for next_multiple_of_64
-#include <hibf/platform.hpp>                  // for HIBF_CONSTEXPR_VECTOR, HIBF_HAS_AVX512
+#include <hibf/platform.hpp>                  // for HIBF_CONSTEXPR_VECTOR, _LIBCPP_HAS_NO_ASAN, _LIBCPP_VERSION
 
 namespace seqan::hibf
 {

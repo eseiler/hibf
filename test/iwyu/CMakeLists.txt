@@ -25,22 +25,11 @@ list (APPEND CMAKE_CXX_INCLUDE_WHAT_YOU_USE "-Xiwyu;--cxx17ns")
 list (APPEND CMAKE_CXX_INCLUDE_WHAT_YOU_USE "-Xiwyu;--transitive_includes_only")
 # This is how iwyu glob works: https://godbolt.org/z/EPhhvjG7n
 list (APPEND CMAKE_CXX_INCLUDE_WHAT_YOU_USE "-Xiwyu;--check_also=**/include/hibf/**.hpp")
-# list (APPEND CMAKE_CXX_INCLUDE_WHAT_YOU_USE "-Xiwyu;--keep=**hibf/platform.hpp")
-# list (APPEND CMAKE_CXX_INCLUDE_WHAT_YOU_USE "-Xiwyu;--keep=**hibf/version.hpp")
 list (APPEND CMAKE_CXX_INCLUDE_WHAT_YOU_USE "-Xiwyu;--no_default_mappings")
 list (APPEND CMAKE_CXX_INCLUDE_WHAT_YOU_USE "-Xiwyu;--mapping_file=/home/infri/iwyu/mappings/foo.imp")
 list (APPEND CMAKE_CXX_INCLUDE_WHAT_YOU_USE "--stdlib=libc++")
 
 option (INSTALL_HIBF "" OFF)
 add_subdirectory (../unit/ unit)
-# add_subdirectory (../performance/ performance)
-# add_subdirectory (../snippet/ snippet)
-
-# Make ./include/hibf and ./test/include SYSTEM header, such that they are included with -isystem
-# IWYU will always use quoted includes ("a.hpp") for -I includes, and angular includes (<a.hpp>) for -isystem includes
-# get_target_property (HIBF_INCLUDES hibf INCLUDE_DIRECTORIES)
-# target_include_directories (hibf SYSTEM PUBLIC "${HIBF_INCLUDES}")
-# get_target_property (HIBF_TEST_INCLUDES hibf_test INTERFACE_INCLUDE_DIRECTORIES)
-# target_include_directories (hibf_test SYSTEM INTERFACE "${HIBF_TEST_INCLUDES}")
-# get_target_property (HIBF_TEST_PERFORMANCE_INCLUDES hibf_test_performance INTERFACE_INCLUDE_DIRECTORIES)
-# target_include_directories (hibf_test_performance SYSTEM INTERFACE "${HIBF_TEST_PERFORMANCE_INCLUDES}")
+add_subdirectory (../performance/ performance)
+add_subdirectory (../snippet/ snippet)

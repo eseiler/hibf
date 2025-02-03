@@ -10,7 +10,9 @@
 #pragma once
 
 // IWYU pragma: always_keep
-#include <version> // IWYU pragma: export
+// IWYU pragma: begin_exports
+#include <version> // for __cpp_lib_constexpr_vector
+// IWYU pragma: end_exports
 
 // macro cruft
 //!\cond

@@ -4,15 +4,15 @@
 
 #pragma once
 
-#include <cinttypes>  // for uint32_t, uint8_t
 #include <cstddef>    // for size_t
+#include <cstdint>    // for uint32_t, uint8_t
 #include <functional> // for function
 #include <iosfwd>     // for istream, ostream
 
 #include <cereal/access.hpp> // for access
 #include <cereal/cereal.hpp> // for make_nvp, CEREAL_NVP
 
-#include <hibf/misc/insert_iterator.hpp> // IWYU pragma: export
+#include <hibf/misc/insert_iterator.hpp>
 #include <hibf/platform.hpp>
 
 namespace seqan::hibf

@@ -4,6 +4,7 @@
 
 #pragma once
 
+// IWYU pragma: always_keep
 #include <cstddef> // for size_t
 #include <cstdint> // for uint8_t
 
