@@ -5,8 +5,8 @@
 #pragma once
 
 // IWYU pragma: always_keep
-#include <cstddef> // for size_t
-#include <cstdint> // for uint8_t
+#include <cinttypes> // for uint8_t
+#include <cstddef>   // for size_t
 
 /*!\file
  * \brief Provides version macros and global variables.

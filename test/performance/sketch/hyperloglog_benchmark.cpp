@@ -4,8 +4,8 @@
 
 #include <benchmark/benchmark.h> // for DoNotOptimize, State, Benchmark, BENCHMARK, BENCHMARK_MAIN
 
-#include <cstdint> // for uint8_t
-#include <string>  // for basic_string
+#include <cinttypes> // for uint8_t
+#include <string>    // for basic_string
 
 #include <hibf/sketch/hyperloglog.hpp> // for hyperloglog
 
