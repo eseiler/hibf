@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <cinttypes> // for uint64_t, uint32_t
-#include <cstddef>   // for size_t
-#include <span>      // for span
-#include <vector>    // for vector
+#include <cstddef> // for size_t
+#include <cstdint> // for uint64_t, uint32_t
+#include <span>    // for span
+#include <vector>  // for vector
 
 #include <cereal/access.hpp> // for access
 #include <cereal/cereal.hpp> // for make_nvp, CEREAL_NVP
