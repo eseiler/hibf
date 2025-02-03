@@ -5,6 +5,7 @@
 #pragma once
 
 // IWYU pragma: always_keep
+
 #include <cinttypes> // for uint8_t
 #include <cstddef>   // for size_t
 

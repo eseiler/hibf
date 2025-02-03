@@ -11,7 +11,9 @@
 
 // IWYU pragma: always_keep
 // IWYU pragma: begin_exports
+
 #include <version> // for __cpp_lib_constexpr_vector
+
 // IWYU pragma: end_exports
 
 // macro cruft
