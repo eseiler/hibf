@@ -22,6 +22,9 @@ target_link_libraries (fpr_correction_check seqan::hibf sharg::sharg)
 add_executable (hash_collisions hash_collisions.cpp)
 target_link_libraries (hash_collisions seqan::hibf sharg::sharg)
 
+add_executable (avalanche avalanche.cpp)
+target_link_libraries (avalanche seqan::hibf sharg::sharg)
+
 set (CMAKE_REQUIRED_QUIET 1)
 check_cxx_source_runs ("#include <generator>\nint main(){}" HIBF_HAS_COROUTINE_GENERATOR)
 if (HIBF_HAS_COROUTINE_GENERATOR)
