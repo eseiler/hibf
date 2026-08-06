@@ -149,7 +149,8 @@ void run(config const & cfg)
     seqan::hibf::interleaved_bloom_filter ibf{seqan::hibf::bin_count{1u},
                                               seqan::hibf::bin_size{bin_size},
                                               seqan::hibf::hash_function_count{cfg.hash},
-                                              true};
+                                              seqan::hibf::empty_bin_fraction{0.0},
+                                              seqan::hibf::track_occupancy{true}};
 
     std::vector<size_t> occupancies{};
     occupancies.reserve(cfg.repetitions);
