@@ -61,6 +61,11 @@ struct inspector
         return ibf.hash_seeds;
     }
 
+    static size_t const hash_and_fit(ibf_t const & ibf, size_t const h, size_t const seed)
+    {
+        return ibf.hash_and_fit(h, seed);
+    }
+
     static std::vector<size_t> const & occupancy(ibf_t const & ibf)
     {
         return ibf.occupancy;
