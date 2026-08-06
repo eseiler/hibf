@@ -80,6 +80,24 @@ struct bin_index
     size_t value;
 };
 
+/*!\brief A strong type that represents the empty bin fraction for the seqan::hibf::interleaved_bloom_filter.
+ * \ingroup ibf
+ * \qualifier strong
+ */
+struct empty_bin_fraction
+{
+    double value;
+};
+
+/*!\brief A strong type that represents whether to track occupancy for the seqan::hibf::interleaved_bloom_filter.
+ * \ingroup ibf
+ * \qualifier strong
+ */
+struct track_occupancy
+{
+    bool value;
+};
+
 /*!\brief The IBF binning directory. A data structure that efficiently answers set-membership queries for multiple bins.
  * \ingroup ibf
  * \implements seqan::hibf::cerealisable
@@ -219,8 +237,8 @@ public:
      *
      * \details
      *
-     * Upon construction, `_bins` many bins are immediately accessible.
-     * Additionally, enough space is reserve to accomodate a total of at least `_bins / empty_bin_fraction` many bins.
+     * Upon construction, `bins_` many bins are immediately accessible.
+     * Additionally, enough space is reserve to accomodate a total of at least `bins_ / empty_bin_fraction` many bins.
      * For example, with `bins_ = 64` and `empty_bin_fraction = 0.5`, the Interleaved Bloom Filter will reserve space
      * for 128 bins, 64 of which are immediately accessible and 64 of which are reserved for future use.
      *
@@ -228,11 +246,12 @@ public:
      *
      * \include test/snippet/ibf/interleaved_bloom_filter_constructor.cpp
      */
-    interleaved_bloom_filter(seqan::hibf::bin_count const bins_,
-                             seqan::hibf::bin_size const size,
-                             seqan::hibf::hash_function_count const funs = seqan::hibf::hash_function_count{2u},
-                             double const empty_bin_fraction = 0.0,
-                             bool const track_occupancy = false);
+    interleaved_bloom_filter(
+        seqan::hibf::bin_count const bins_,
+        seqan::hibf::bin_size const size,
+        seqan::hibf::hash_function_count const funs = seqan::hibf::hash_function_count{2u},
+        seqan::hibf::empty_bin_fraction const empty_bin_fraction = seqan::hibf::empty_bin_fraction{0.0},
+        seqan::hibf::track_occupancy const track_occupancy = seqan::hibf::track_occupancy{false});
 
     /*!\brief Construct an Interleaved Bloom Filter.
      * \param configuration The seqan::hibf::config.

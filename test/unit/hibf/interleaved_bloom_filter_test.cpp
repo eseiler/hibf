@@ -212,7 +212,7 @@ TEST(ibf_test, emplace_with_occupancy)
     seqan::hibf::interleaved_bloom_filter ibf{seqan::hibf::bin_count{64u},
                                               seqan::hibf::bin_size{512},
                                               seqan::hibf::hash_function_count{2u},
-                                              0.5}; // 64 empty bins
+                                              seqan::hibf::empty_bin_fraction{0.5}}; // 64 empty bins
 
     for (size_t bin_idx : std::views::iota(0, 64))
         for (size_t hash : std::views::iota(0, 64))
@@ -456,7 +456,7 @@ TEST(ibf_test, try_increase_bin_number_to_empty_bins)
     seqan::hibf::interleaved_bloom_filter ibf{seqan::hibf::bin_count{60u},
                                               seqan::hibf::bin_size{1024u},
                                               seqan::hibf::hash_function_count{2u},
-                                              0.5}; // 60 empty bins
+                                              seqan::hibf::empty_bin_fraction{0.5}}; // 60 empty bins
     size_t const original_bitsize{ibf.bit_size()};
 
     EXPECT_TRUE(ibf.try_increase_bin_number_to({64u}));
@@ -524,7 +524,7 @@ TEST(ibf_test, increase_bin_number_to_empty_bins)
     seqan::hibf::interleaved_bloom_filter ibf{seqan::hibf::bin_count{60u},
                                               seqan::hibf::bin_size{8u},
                                               seqan::hibf::hash_function_count{2u},
-                                              0.5}; // 60 empty bins
+                                              seqan::hibf::empty_bin_fraction{0.5}}; // 60 empty bins
     size_t const original_bitsize{ibf.bit_size()};
 
     // 1. Throw if trying to reduce number of bins.
@@ -544,7 +544,7 @@ TEST(ibf_test, increase_bin_number_to_empty_bins)
         seqan::hibf::interleaved_bloom_filter ibf{seqan::hibf::bin_count{64u},
                                                   seqan::hibf::bin_size{8u},
                                                   seqan::hibf::hash_function_count{2u},
-                                                  0.5};
+                                                  seqan::hibf::empty_bin_fraction{0.5}};
 
         EXPECT_EQ(ibf.bit_size(), 1024u);
         std::ranges::for_each(hashes,

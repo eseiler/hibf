@@ -33,12 +33,12 @@ namespace seqan::hibf
 interleaved_bloom_filter::interleaved_bloom_filter(seqan::hibf::bin_count const bins_,
                                                    seqan::hibf::bin_size const size,
                                                    seqan::hibf::hash_function_count const funs,
-                                                   double const empty_bin_fraction,
-                                                   bool const track_occupancy) :
+                                                   seqan::hibf::empty_bin_fraction const empty_bin_fraction,
+                                                   seqan::hibf::track_occupancy const track_occupancy) :
     bins{bins_.value},
     bin_size_{size.value},
     hash_funs{funs.value},
-    track_occupancy{track_occupancy || empty_bin_fraction > 0.0}
+    track_occupancy{track_occupancy.value || empty_bin_fraction.value > 0.0}
 {
     if (bins == 0)
         throw std::logic_error{"The number of bins must be > 0."};
@@ -55,7 +55,7 @@ interleaved_bloom_filter::interleaved_bloom_filter(seqan::hibf::bin_count const 
     //          user bins = 320 * (1 - 0.2) = 256
     //          The layout only contains information about the 256 bins.
     //          The HIBF construction will then request an IBF with 256 bins.
-    size_t const user_and_empty_bins = add_empty_bins(bins, empty_bin_fraction);
+    size_t const user_and_empty_bins = add_empty_bins(bins, empty_bin_fraction.value);
     technical_bins = next_multiple_of_64(user_and_empty_bins);
     resize(technical_bins * bin_size_);
     occupancy.resize(technical_bins, 0u);
@@ -114,8 +114,8 @@ interleaved_bloom_filter::interleaved_bloom_filter(config & configuration, size_
     interleaved_bloom_filter{seqan::hibf::bin_count{configuration.number_of_user_bins},
                              seqan::hibf::bin_size{max_bin_size(configuration, max_bin_elements)},
                              seqan::hibf::hash_function_count{configuration.number_of_hash_functions},
-                             configuration.empty_bin_fraction,
-                             configuration.track_occupancy}
+                             seqan::hibf::empty_bin_fraction{configuration.empty_bin_fraction},
+                             seqan::hibf::track_occupancy{configuration.track_occupancy}}
 {
     size_t const chunk_size = std::clamp<size_t>(std::bit_ceil(bin_count() / configuration.threads), 8u, 64u);
 

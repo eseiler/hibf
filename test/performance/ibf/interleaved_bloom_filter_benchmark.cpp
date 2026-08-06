@@ -104,8 +104,8 @@ inline void emplace_benchmark_impl(::benchmark::State & state)
     seqan::hibf::interleaved_bloom_filter ibf{seqan::hibf::bin_count{original_ibf.bin_count()},
                                               seqan::hibf::bin_size{original_ibf.bin_size()},
                                               seqan::hibf::hash_function_count{original_ibf.hash_function_count()},
-                                              0.0,
-                                              track_occupancy};
+                                              seqan::hibf::empty_bin_fraction{0.0},
+                                              seqan::hibf::track_occupancy{track_occupancy}};
 
     for (auto _ : state)
     {
