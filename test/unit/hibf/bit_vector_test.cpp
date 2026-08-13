@@ -337,6 +337,21 @@ TEST(bit_vector_test, all)
         test_vector[0] = false;
         EXPECT_FALSE(test_vector.all());
     }
+
+    { // Bits beyond `size()` are unset.
+        seqan::hibf::bit_vector test_vector(250, false);
+        for (size_t i = 0; i < test_vector.size(); ++i)
+            test_vector[i] = true;
+        EXPECT_TRUE(test_vector.all());
+    }
+
+    { // `size()` is a multiple of the chunk size, i.e. there are no bits beyond `size()`.
+        seqan::hibf::bit_vector test_vector(256, true);
+        EXPECT_TRUE(test_vector.all());
+
+        test_vector[255] = false;
+        EXPECT_FALSE(test_vector.all());
+    }
 }
 
 TEST(bit_vector_test, any)
@@ -357,6 +372,21 @@ TEST(bit_vector_test, any)
         test_vector[0] = true;
         EXPECT_TRUE(test_vector.any());
     }
+
+    { // Bits beyond `size()` are set.
+        seqan::hibf::bit_vector test_vector(250, true);
+        for (size_t i = 0; i < test_vector.size(); ++i)
+            test_vector[i] = false;
+        EXPECT_FALSE(test_vector.any());
+    }
+
+    { // `size()` is a multiple of the chunk size, i.e. there are no bits beyond `size()`.
+        seqan::hibf::bit_vector test_vector(256, false);
+        EXPECT_FALSE(test_vector.any());
+
+        test_vector[255] = true;
+        EXPECT_TRUE(test_vector.any());
+    }
 }
 
 TEST(bit_vector_test, none)
@@ -375,6 +405,21 @@ TEST(bit_vector_test, none)
 
         test_vector[249] = false;
         test_vector[0] = true;
+        EXPECT_FALSE(test_vector.none());
+    }
+
+    { // Bits beyond `size()` are set.
+        seqan::hibf::bit_vector test_vector(250, true);
+        for (size_t i = 0; i < test_vector.size(); ++i)
+            test_vector[i] = false;
+        EXPECT_TRUE(test_vector.none());
+    }
+
+    { // `size()` is a multiple of the chunk size, i.e. there are no bits beyond `size()`.
+        seqan::hibf::bit_vector test_vector(256, false);
+        EXPECT_TRUE(test_vector.none());
+
+        test_vector[255] = true;
         EXPECT_FALSE(test_vector.none());
     }
 }
@@ -779,6 +824,82 @@ TEST(bit_vector_test, empty)
     {
         seqan::hibf::bit_vector test_vector(1000);
         EXPECT_FALSE(test_vector.empty());
+    }
+}
+
+TEST(bit_vector_test, count)
+{
+    {
+        seqan::hibf::bit_vector test_vector(280);
+        for (size_t i = 0; i < test_vector.size(); ++i)
+            test_vector[i] = i % 2;
+        EXPECT_EQ(test_vector.count(), 140);
+    }
+
+    { // `flip()` also affects bits beyond `size()`.
+        seqan::hibf::bit_vector test_vector(280);
+        EXPECT_EQ(test_vector.count(), 0);
+        test_vector.flip();
+        EXPECT_EQ(test_vector.count(), 280);
+    }
+
+    { // Bits beyond `size()` are set by the constructor.
+        seqan::hibf::bit_vector test_vector(280, true);
+        EXPECT_EQ(test_vector.count(), 280);
+        test_vector.flip();
+        EXPECT_EQ(test_vector.count(), 0);
+    }
+
+    { // `size()` is a multiple of the chunk size, i.e. there are no bits beyond `size()`.
+        seqan::hibf::bit_vector test_vector(256);
+        EXPECT_EQ(test_vector.count(), 0);
+        test_vector.flip();
+        EXPECT_EQ(test_vector.count(), 256);
+    }
+
+    { // empty vector
+        seqan::hibf::bit_vector test_vector{};
+        EXPECT_EQ(test_vector.count(), 0);
+        test_vector.flip();
+        EXPECT_EQ(test_vector.count(), 0);
+    }
+}
+
+TEST(bit_vector_test, count_ranges)
+{
+    {
+        seqan::hibf::bit_vector test_vector(280);
+        for (size_t i = 0; i < test_vector.size(); ++i)
+            test_vector[i] = i % 2;
+        EXPECT_EQ(std::ranges::count(test_vector, true), 140);
+    }
+
+    { // `flip()` also affects bits beyond `size()`.
+        seqan::hibf::bit_vector test_vector(280);
+        EXPECT_EQ(std::ranges::count(test_vector, true), 0);
+        test_vector.flip();
+        EXPECT_EQ(std::ranges::count(test_vector, true), 280);
+    }
+
+    { // Bits beyond `size()` are set by the constructor.
+        seqan::hibf::bit_vector test_vector(280, true);
+        EXPECT_EQ(std::ranges::count(test_vector, true), 280);
+        test_vector.flip();
+        EXPECT_EQ(std::ranges::count(test_vector, true), 0);
+    }
+
+    { // `size()` is a multiple of the chunk size, i.e. there are no bits beyond `size()`.
+        seqan::hibf::bit_vector test_vector(256);
+        EXPECT_EQ(std::ranges::count(test_vector, true), 0);
+        test_vector.flip();
+        EXPECT_EQ(std::ranges::count(test_vector, true), 256);
+    }
+
+    { // empty vector
+        seqan::hibf::bit_vector test_vector{};
+        EXPECT_EQ(std::ranges::count(test_vector, true), 0);
+        test_vector.flip();
+        EXPECT_EQ(std::ranges::count(test_vector, true), 0);
     }
 }
 

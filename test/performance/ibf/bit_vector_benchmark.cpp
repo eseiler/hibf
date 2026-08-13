@@ -65,6 +65,28 @@ void one_set_bit_vector(benchmark::State & state, operation_t operation)
     }
 }
 
+void count(benchmark::State & state)
+{
+    seqan::hibf::bit_vector vec(state.range(0));
+
+    for (auto _ : state)
+    {
+        size_t result = vec.count();
+        benchmark::DoNotOptimize(result);
+    }
+}
+
+void count_ranges(benchmark::State & state)
+{
+    seqan::hibf::bit_vector vec(state.range(0));
+
+    for (auto _ : state)
+    {
+        size_t result = std::ranges::count(vec, true);
+        benchmark::DoNotOptimize(result);
+    }
+}
+
 // ----------------------------------------------------------------------------
 // Benchmark operations
 // ----------------------------------------------------------------------------
@@ -131,6 +153,9 @@ BENCHMARK_CAPTURE(random_bit_vector, flip, binary_flip)->RangeMultiplier(range_m
 BENCHMARK_CAPTURE(one_set_bit_vector, none, none_fn)->RangeMultiplier(range_multiplier)->Range(min_range, max_range);
 BENCHMARK_CAPTURE(one_set_bit_vector, all, all_fn)->RangeMultiplier(range_multiplier)->Range(min_range, max_range);
 BENCHMARK_CAPTURE(one_set_bit_vector, any, any_fn)->RangeMultiplier(range_multiplier)->Range(min_range, max_range);
+
+BENCHMARK(count)->RangeMultiplier(range_multiplier)->Range(min_range, max_range);
+BENCHMARK(count_ranges)->RangeMultiplier(range_multiplier)->Range(min_range, max_range);
 
 // ----------------------------------------------------------------------------
 // Run benchmark

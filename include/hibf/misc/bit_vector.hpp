@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <algorithm>        // for __fn, for_each, all_of, any_of, copy, fill
+#include <algorithm>        // for __fn, for_each, copy, fill
 #include <bit>              // for countr_zero
 #include <cassert>          // for assert
 #include <climits>          // for CHAR_BIT
@@ -590,28 +590,59 @@ public:
     //!\brief Checks if all bits are set to `true`.
     constexpr bool all() const noexcept
     {
-        constexpr chunk_type mask = ~static_cast<chunk_type>(0);
-        return std::ranges::all_of(*as_base(),
-                                   [](chunk_type const & chunk)
-                                   {
-                                       return chunk == mask;
-                                   });
+        if (empty())
+            return true;
+
+        constexpr chunk_type mask = ~chunk_type{};
+        chunk_type const * const ptr = data();
+        size_type const last_chunk = host_size_impl(size()) - 1u;
+
+        for (size_t i = 0; i < last_chunk; ++i)
+            if (ptr[i] != mask)
+                return false;
+
+        // The last chunk may contain unset bits beyond `size()`. Those must not be considered.
+        return (ptr[last_chunk] | ~last_chunk_mask()) == mask;
     }
 
     //!\brief Checks if any bit is set to `true`.
     constexpr bool any() const noexcept
     {
-        return std::ranges::any_of(*as_base(),
-                                   [](chunk_type const & chunk)
-                                   {
-                                       return chunk;
-                                   });
+        if (empty())
+            return false;
+
+        chunk_type const * const ptr = data();
+        size_type const last_chunk = host_size_impl(size()) - 1u;
+
+        for (size_t i = 0; i < last_chunk; ++i)
+            if (ptr[i])
+                return true;
+
+        // The last chunk may contain set bits beyond `size()`. Those must not be considered.
+        return (ptr[last_chunk] & last_chunk_mask()) != chunk_type{};
     }
 
     //!\brief Checks if none of the bits is set to `true`.
     constexpr bool none() const noexcept
     {
         return !any();
+    }
+
+    //!\brief Returns the number of bits that are set to `true`.
+    constexpr size_t count() const noexcept
+    {
+        if (empty())
+            return 0u;
+
+        chunk_type const * const ptr = data();
+        size_type const size = host_size_impl(this->size());
+        size_t result{};
+
+        for (size_t i = 0; i < size; ++i)
+            result += std::popcount(ptr[i]);
+
+        // The last chunk may contain bits beyond `size()`, e.g., after `flip()`. Those must not be counted.
+        return result - std::popcount(ptr[size - 1] & ~last_chunk_mask());
     }
     //!\}
 
@@ -1020,6 +1051,21 @@ private:
     constexpr size_type chunks_needed(size_type const count) const noexcept
     {
         return (count + 63u) >> 6; // ceil(count/64)
+    }
+
+    /*!\brief Returns a mask that selects the bits of the last chunk that are within `[0, size())`.
+     *
+     * \details
+     *
+     * If `size()` is a multiple of `chunk_size`, all bits of the last chunk belong to the bit vector and an all-ones
+     * mask is returned. Must not be called on an empty bit vector, i.e. when there is no last chunk.
+     */
+    constexpr chunk_type last_chunk_mask() const noexcept
+    {
+        assert(!empty());
+
+        size_type const bits_in_last_chunk = to_local_chunk_position(size());
+        return bits_in_last_chunk ? (chunk_type{1u} << bits_in_last_chunk) - 1u : ~chunk_type{};
     }
 
     //!\brief Returns a new chunk filled with the given bit.
