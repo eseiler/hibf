@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef HIBF_HAS_AVX512
-#    define HIBF_HAS_AVX512 0
+#define HIBF_HAS_AVX512 0
 #endif
 
 #include <gtest/gtest.h> // for Message, TYPED_TEST, TestPartResult, ASSERT_EQ, EXPECT_EQ, Types
@@ -51,13 +51,13 @@ protected:
     void annotate_llvm_asan() const
     {
 #if defined(_LIBCPP_VERSION)
-#    if __has_feature(address_sanitizer)
+#if __has_feature(address_sanitizer)
         std::__annotate_contiguous_container<typename seqan::hibf::counting_vector<TypeParam>::allocator_type>(
             counting_vector.data(),
             counting_vector.data() + counting_vector.capacity(),
             counting_vector.data() + counting_vector.size(),
             counting_vector.data() + counting_vector.capacity());
-#    endif
+#endif
 #endif
     }
 };
