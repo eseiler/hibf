@@ -398,13 +398,13 @@ public:
      * \{
      */
     //!\brief The default constructor which optionally sets the allocator.
-    HIBF_CONSTEXPR_VECTOR bit_vector(allocator_type const & alloc = allocator_type{}) : base_t{alloc}
+    constexpr bit_vector(allocator_type const & alloc = allocator_type{}) : base_t{alloc}
     {}
-    HIBF_CONSTEXPR_VECTOR bit_vector(bit_vector const &) = default;             //!< Default.
-    HIBF_CONSTEXPR_VECTOR bit_vector(bit_vector &&) = default;                  //!< Default.
-    HIBF_CONSTEXPR_VECTOR bit_vector & operator=(bit_vector const &) = default; //!< Default.
-    HIBF_CONSTEXPR_VECTOR bit_vector & operator=(bit_vector &&) = default;      //!< Default.
-    HIBF_CONSTEXPR_VECTOR ~bit_vector() = default;                              //!< Default.
+    constexpr bit_vector(bit_vector const &) = default;             //!< Default.
+    constexpr bit_vector(bit_vector &&) = default;                  //!< Default.
+    constexpr bit_vector & operator=(bit_vector const &) = default; //!< Default.
+    constexpr bit_vector & operator=(bit_vector &&) = default;      //!< Default.
+    constexpr ~bit_vector() = default;                              //!< Default.
 
     /*!\brief Constructs the bit vector with `count` copies of elements with value `bit`.
      *
@@ -412,8 +412,8 @@ public:
      * \param[in] bit The bit to set during initialisation.
      * \param[in] alloc The allocator to use [optional].
      */
-    HIBF_CONSTEXPR_VECTOR
-    bit_vector(size_type const count, bool const bit, allocator_type const & alloc = allocator_type{}) : base_t{alloc}
+    constexpr bit_vector(size_type const count, bool const bit, allocator_type const & alloc = allocator_type{}) :
+        base_t{alloc}
     {
         assign(count, bit);
     }
@@ -423,8 +423,7 @@ public:
      * \param[in] list An initialiser list with the bits set.
      * \param[in] alloc The allocator to use [optional].
      */
-    HIBF_CONSTEXPR_VECTOR bit_vector(std::initializer_list<bool> list,
-                                     allocator_type const & alloc = allocator_type{}) :
+    constexpr bit_vector(std::initializer_list<bool> list, allocator_type const & alloc = allocator_type{}) :
         base_t{alloc}
     {
         assign(list);
@@ -435,7 +434,7 @@ public:
      * \param[in] count The number of elements to create the bit vector with.
      * \param[in] alloc The allocator to use [optional].
      */
-    HIBF_CONSTEXPR_VECTOR bit_vector(size_type const count, allocator_type const & alloc = allocator_type{}) :
+    constexpr bit_vector(size_type const count, allocator_type const & alloc = allocator_type{}) :
         bit_vector{count, bool{}, alloc}
     {}
     //!\}
@@ -527,7 +526,7 @@ public:
      *
      * Linear in count.
      */
-    HIBF_CONSTEXPR_VECTOR void assign(size_type const count, bool const bit)
+    constexpr void assign(size_type const count, bool const bit)
     {
         resize(count, bit);
         std::ranges::for_each(*as_base(),
@@ -542,7 +541,7 @@ public:
      * \{
      */
     //!\brief Access specified element.
-    HIBF_CONSTEXPR_VECTOR reference operator[](size_type const position) noexcept
+    constexpr reference operator[](size_type const position) noexcept
     {
         assert(position < size());
 
@@ -550,7 +549,7 @@ public:
     }
 
     //!\brief Access specified element.
-    HIBF_CONSTEXPR_VECTOR const_reference operator[](size_type const position) const noexcept
+    constexpr const_reference operator[](size_type const position) const noexcept
     {
         assert(position < size());
 
@@ -573,7 +572,7 @@ public:
      *
      * Constant.
      */
-    HIBF_CONSTEXPR_VECTOR reference back() noexcept
+    constexpr reference back() noexcept
     {
         assert(!empty()); // Calling on empty container is undefined behaviour.
 
@@ -581,7 +580,7 @@ public:
     }
 
     //!\overload
-    HIBF_CONSTEXPR_VECTOR const_reference back() const noexcept
+    constexpr const_reference back() const noexcept
     {
         assert(!empty()); // Calling on empty container is undefined behaviour.
 
@@ -632,7 +631,7 @@ public:
     }
 
     //!\brief Returns the capacity.
-    HIBF_CONSTEXPR_VECTOR size_type capacity() const noexcept
+    constexpr size_type capacity() const noexcept
     {
         return base_t::capacity() * chunk_size;
     }
@@ -654,7 +653,7 @@ public:
      * std::length_error if `new_capacity > max_size()` or any exception thrown by allocator_t::allocate().
      * If an exception is thrown this function has no effect (strong exception guarantee).
      */
-    HIBF_CONSTEXPR_VECTOR void reserve(size_type const new_capacity)
+    constexpr void reserve(size_type const new_capacity)
     {
         base_t::reserve(host_size_impl(new_capacity));
     }
@@ -684,7 +683,7 @@ public:
      *
      * Amortised constant.
      */
-    HIBF_CONSTEXPR_VECTOR void push_back(bool bit)
+    constexpr void push_back(bool bit)
     {
         size_t const new_size = size() + 1u;
         resize(new_size);
@@ -694,7 +693,7 @@ public:
     }
 
     //!\brief Changes the number of elements stored, where additional copies of `bit` are appended.
-    HIBF_CONSTEXPR_VECTOR void resize(size_type const count, bool const bit = {})
+    constexpr void resize(size_type const count, bool const bit = {})
     {
         base_t::resize(host_size_impl(count));
 
@@ -707,7 +706,7 @@ public:
     }
 
     //!\brief Erases all elements. After this call, size() returns zero. capacity() remains unchanged.
-    HIBF_CONSTEXPR_VECTOR void clear() noexcept
+    constexpr void clear() noexcept
     {
         base_t::clear();
         _size = 0u;
@@ -750,7 +749,7 @@ public:
     }
 
     //!\brief Performs binary NOT.
-    HIBF_CONSTEXPR_VECTOR bit_vector operator~() const noexcept
+    constexpr bit_vector operator~() const noexcept
     {
         bit_vector tmp(size());
 
@@ -764,19 +763,19 @@ public:
     }
 
     //!\brief Performs binary AND.
-    HIBF_CONSTEXPR_VECTOR friend bit_vector operator&(bit_vector lhs, bit_vector const & rhs) noexcept
+    constexpr friend bit_vector operator&(bit_vector lhs, bit_vector const & rhs) noexcept
     {
         return lhs &= rhs;
     }
 
     //!\brief Performs binary OR.
-    HIBF_CONSTEXPR_VECTOR friend bit_vector operator|(bit_vector lhs, bit_vector const & rhs) noexcept
+    constexpr friend bit_vector operator|(bit_vector lhs, bit_vector const & rhs) noexcept
     {
         return lhs |= rhs;
     }
 
     //!\brief Performs binary XOR.
-    HIBF_CONSTEXPR_VECTOR friend bit_vector operator^(bit_vector lhs, bit_vector const & rhs) noexcept
+    constexpr friend bit_vector operator^(bit_vector lhs, bit_vector const & rhs) noexcept
     {
         return lhs ^= rhs;
     }
@@ -805,7 +804,7 @@ public:
     }
 
     //!\brief Flips the bit at the given position.
-    HIBF_CONSTEXPR_VECTOR bit_vector & flip(size_type position)
+    constexpr bit_vector & flip(size_type position)
     {
         using namespace std::literals;
 
@@ -818,7 +817,7 @@ public:
     }
 
     //!\brief Exchanges the contents of the container with those of others.
-    HIBF_CONSTEXPR_VECTOR void swap(bit_vector & other) noexcept
+    constexpr void swap(bit_vector & other) noexcept
     {
         base_t::swap(*other.as_base());
         std::swap(_size, other._size);
@@ -829,48 +828,48 @@ public:
      * \{
      */
     //!\brief Returns an iterator to the beginning.
-    HIBF_CONSTEXPR_VECTOR iterator begin() noexcept
+    constexpr iterator begin() noexcept
     {
         return iterator{base_t::data()};
     }
 
     //!\overload
-    HIBF_CONSTEXPR_VECTOR const_iterator begin() const noexcept
+    constexpr const_iterator begin() const noexcept
     {
         return const_iterator{base_t::data()};
     }
 
     //!\overload
-    HIBF_CONSTEXPR_VECTOR const_iterator cbegin() const noexcept
+    constexpr const_iterator cbegin() const noexcept
     {
         return begin();
     }
 
     //!\brief Returns an iterator to the end.
-    HIBF_CONSTEXPR_VECTOR iterator end() noexcept
+    constexpr iterator end() noexcept
     {
         return begin() + size();
     }
 
     //!\overload
-    HIBF_CONSTEXPR_VECTOR const_iterator end() const noexcept
+    constexpr const_iterator end() const noexcept
     {
         return begin() + size();
     }
 
     //!\overload
-    HIBF_CONSTEXPR_VECTOR const_iterator cend() const noexcept
+    constexpr const_iterator cend() const noexcept
     {
         return end();
     }
     //!\}
 
-    [[gnu::always_inline]] inline HIBF_CONSTEXPR_VECTOR chunk_type * data() noexcept
+    [[gnu::always_inline]] inline constexpr chunk_type * data() noexcept
     {
         return std::assume_aligned<allocator_type::alignment>(base_t::data());
     }
 
-    [[gnu::always_inline]] inline HIBF_CONSTEXPR_VECTOR chunk_type const * data() const noexcept
+    [[gnu::always_inline]] inline constexpr chunk_type const * data() const noexcept
     {
         return std::assume_aligned<allocator_type::alignment>(base_t::data());
     }
@@ -928,7 +927,7 @@ public:
 private:
 // If nothing else works: Just use `resize`.
 #ifndef HIBF_UNINITIALISED_RESIZE
-    HIBF_CONSTEXPR_VECTOR inline void resize_for_overwrite(size_t const size)
+    inline constexpr void resize_for_overwrite(size_t const size)
     {
         base_t::resize(size);
     }
@@ -945,14 +944,10 @@ private:
 
             pointer begin;
             pointer end;
-#        if (_LIBCPP_VERSION < 200000)
-            std::__compressed_pair<pointer, allocator_t> end_cap;
-#        else
-#            pragma GCC diagnostic push
-#            pragma GCC diagnostic ignored "-Wgnu-anonymous-struct" // Warning since clang-21
+#        pragma GCC diagnostic push
+#        pragma GCC diagnostic ignored "-Wgnu-anonymous-struct" // Warning since clang-21
             _LIBCPP_COMPRESSED_PAIR(pointer, end_cap = nullptr, allocator_type, allocator);
-#            pragma GCC diagnostic pop
-#        endif
+#        pragma GCC diagnostic pop
         };
 
         static_assert(sizeof(fake_vector) == sizeof(base_t));
@@ -962,25 +957,17 @@ private:
             base_t::reserve(size);
 // Annotate the new memory as contiguous container for llvm's address sanitizer.
 #        if __has_feature(address_sanitizer)
-#            if (_LIBCPP_VERSION < 200000)
-        __sanitizer_annotate_contiguous_container(base_t::data(),
-                                                  base_t::data() + base_t::capacity(),
-                                                  base_t::data() + base_t::size(),
-                                                  base_t::data() + size);
-#            else
         std::__annotate_contiguous_container<allocator_t>(base_t::data(),
                                                           base_t::data() + base_t::capacity(),
                                                           base_t::data() + base_t::size(),
                                                           base_t::data() + size);
-#            endif
 #        endif
-
         fake_vector & vec = reinterpret_cast<fake_vector &>(*this);
         vec.end = vec.begin + size;
     }
 // libstdc++: The internal members are protected, so we can access them.
 #    else
-    HIBF_CONSTEXPR_VECTOR inline void resize_for_overwrite(size_t const size)
+    inline constexpr void resize_for_overwrite(size_t const size)
     {
         if (size > base_t::capacity())
             base_t::reserve(size);

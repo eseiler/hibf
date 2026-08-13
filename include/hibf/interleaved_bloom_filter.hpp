@@ -456,7 +456,7 @@ public:
     /*!\name Comparison operators
      * \{
      */
-    HIBF_CONSTEXPR_VECTOR bool operator==(interleaved_bloom_filter const &) const = default;
+    constexpr bool operator==(interleaved_bloom_filter const &) const = default;
     //!\}
 
     /*!\name Access
@@ -635,17 +635,10 @@ public:
                                                // Silences llvm's ASAN container-overflow warning.
 #    if defined(_LIBCPP_VERSION)
 #        if __has_feature(address_sanitizer)
-#            if (_LIBCPP_VERSION < 200000)
-        __sanitizer_annotate_contiguous_container(result_buffer.data(),
-                                                  result_buffer.data() + result_buffer.capacity(),
-                                                  result_buffer.data() + result_buffer.size(),
-                                                  result_buffer.data() + result_buffer.capacity());
-#            else
         std::__annotate_contiguous_container<allocator_type>(result_buffer.data(),
                                                              result_buffer.data() + result_buffer.capacity(),
                                                              result_buffer.data() + result_buffer.size(),
                                                              result_buffer.data() + result_buffer.capacity());
-#            endif
 #        endif
 #    endif
     }

@@ -52,18 +52,11 @@ protected:
     {
 #if defined(_LIBCPP_VERSION)
 #if __has_feature(address_sanitizer)
-#    if (_LIBCPP_VERSION < 200000)
-        __sanitizer_annotate_contiguous_container(counting_vector.data(),
-                                                  counting_vector.data() + counting_vector.capacity(),
-                                                  counting_vector.data() + counting_vector.size(),
-                                                  counting_vector.data() + counting_vector.capacity());
-#    else
         std::__annotate_contiguous_container<typename seqan::hibf::counting_vector<TypeParam>::allocator_type>(
             counting_vector.data(),
             counting_vector.data() + counting_vector.capacity(),
             counting_vector.data() + counting_vector.size(),
             counting_vector.data() + counting_vector.capacity());
-#    endif
 #endif
 #endif
     }
