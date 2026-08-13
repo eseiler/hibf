@@ -394,17 +394,7 @@ void hierarchical_binning::update_libf_data(data_store & libf_data, size_t const
 
     libf_data.previous = data->previous;
     libf_data.previous.bin_indices.push_back(bin_id);
-
-#if HIBF_WORKAROUND_GCC_BOGUS_MEMCPY
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wrestrict"
-#endif // HIBF_WORKAROUND_GCC_BOGUS_MEMCPY
-
     libf_data.previous.num_of_bins += (is_top_level ? "" : ";") + std::string{"1"};
-
-#if HIBF_WORKAROUND_GCC_BOGUS_MEMCPY
-#    pragma GCC diagnostic pop
-#endif // HIBF_WORKAROUND_GCC_BOGUS_MEMCPY
 }
 
 size_t hierarchical_binning::add_lower_level(data_store & libf_data) const

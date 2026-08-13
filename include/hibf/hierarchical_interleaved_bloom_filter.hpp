@@ -249,7 +249,7 @@ public:
     /*!\name Comparison operators
      * \{
      */
-    HIBF_CONSTEXPR_VECTOR bool operator==(hierarchical_interleaved_bloom_filter const &) const;
+    constexpr bool operator==(hierarchical_interleaved_bloom_filter const &) const;
     //!\}
 
     /*!\cond DEV
@@ -308,7 +308,7 @@ struct hierarchical_interleaved_bloom_filter::previous_ibf_id_pair
     }
 };
 
-HIBF_CONSTEXPR_VECTOR bool
+constexpr bool
 hierarchical_interleaved_bloom_filter::operator==(hierarchical_interleaved_bloom_filter const &) const = default;
 
 class hierarchical_interleaved_bloom_filter::membership_agent_type

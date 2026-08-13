@@ -61,28 +61,32 @@
 //  Compiler support
 // ============================================================================
 
-#if HIBF_COMPILER_IS_GCC && (__GNUC__ < 12)
-#    error "At least GCC 12 is needed."
+#if HIBF_COMPILER_IS_GCC && (__GNUC__ < 14)
+#    error "At least GCC 14 is needed."
 #endif
 
-#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20240000)
-#    error "At least Intel OneAPI 2024 is needed."
+#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20250000)
+#    error "At least Intel OneAPI 2025 is needed."
 #endif
 
-#if defined(__clang__) && defined(__clang_major__) && (__clang_major__ < 17)
-#    error "At least Clang 17 is needed."
+#if defined(__clang__) && defined(__clang_major__) && (__clang_major__ < 20) && !defined(__INTEL_LLVM_COMPILER)
+#    error "At least Clang 20 is needed."
 #endif
+
+#if defined(_GLIBCXX_USE_CXX11_ABI) && _GLIBCXX_USE_CXX11_ABI == 0
+#    pragma message "We do not actively support compiler that have -D_GLIBCXX_USE_CXX11_ABI=0 set."
+#endif // _GLIBCXX_USE_CXX11_ABI == 0
 
 // ============================================================================
 //  Standard library support
 // ============================================================================
 
-#if defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION < 170000)
-#    error "At least libc++ 17 is required."
+#if defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION < 200000)
+#    error "At least libc++ 20 is required."
 #endif
 
-#if defined(_GLIBCXX_RELEASE) && (_GLIBCXX_RELEASE < 12)
-#    error "At least libstdc++ 12 is needed."
+#if defined(_GLIBCXX_RELEASE) && (_GLIBCXX_RELEASE < 14)
+#    error "At least libstdc++ 14 is needed."
 #endif
 
 // ============================================================================
@@ -91,7 +95,7 @@
 
 // C++ standard [required]
 #ifdef __cplusplus
-#    if (__cplusplus < 202100)
+#    if (__cplusplus < 202302L)
 #        error "C++23 is required, make sure that you have set -std=c++23."
 #    endif
 #else
@@ -108,29 +112,3 @@
 #else
 #    error "HIBF include directory not set correctly. Forgot to add -I ${INSTALLDIR}/include to your CXXFLAGS?"
 #endif
-
-// ============================================================================
-//  Workarounds
-// ============================================================================
-
-//!\brief std::vector constexpr support.
-#if defined(__cpp_lib_constexpr_vector)
-#    define HIBF_CONSTEXPR_VECTOR constexpr
-#else
-#    define HIBF_CONSTEXPR_VECTOR
-#endif
-
-/*!\brief Workaround bogus memcpy errors in GCC 12. (Wrestrict and Wstringop-overflow)
- * \see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105545
- */
-#ifndef HIBF_WORKAROUND_GCC_BOGUS_MEMCPY
-#    if HIBF_COMPILER_IS_GCC && (__GNUC__ == 12)
-#        define HIBF_WORKAROUND_GCC_BOGUS_MEMCPY 1
-#    else
-#        define HIBF_WORKAROUND_GCC_BOGUS_MEMCPY 0
-#    endif
-#endif
-
-#if defined(_GLIBCXX_USE_CXX11_ABI) && _GLIBCXX_USE_CXX11_ABI == 0
-#    pragma message "We do not actively support compiler that have -D_GLIBCXX_USE_CXX11_ABI=0 set."
-#endif // _GLIBCXX_USE_CXX11_ABI == 0

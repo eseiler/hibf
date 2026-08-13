@@ -345,8 +345,7 @@ PREDEFINED             = "HIBF_DOXYGEN_ONLY(x)= x" \
                          CEREAL_SERIALIZE_FUNCTION_NAME=serialize \
                          CEREAL_LOAD_FUNCTION_NAME=load \
                          CEREAL_SAVE_FUNCTION_NAME=save \
-                         ${HIBF_DOXYGEN_PREDEFINED_NDEBUG} \
-                         HIBF_CONSTEXPR_VECTOR=constexpr
+                         ${HIBF_DOXYGEN_PREDEFINED_NDEBUG}
 EXPAND_AS_DEFINED      =
 SKIP_FUNCTION_MACROS   = NO
 #---------------------------------------------------------------------------

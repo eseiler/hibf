@@ -27,7 +27,7 @@ namespace seqan::hibf
  * \returns A vector of size `size` with values from 0 to `size - 1`.
 */
 template <std::unsigned_integral value_t = size_t>
-HIBF_CONSTEXPR_VECTOR std::vector<value_t> iota_vector(size_t const size)
+constexpr std::vector<value_t> iota_vector(size_t const size)
 {
     assert(size <= std::numeric_limits<value_t>::max());
     std::vector<value_t> result(size);
