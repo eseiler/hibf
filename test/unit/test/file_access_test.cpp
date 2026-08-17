@@ -4,9 +4,10 @@
 
 #include <gtest/gtest.h> // for AssertionResult, Message, TestInfo, TEST_F, TestPartResult, CmpHelperEQ
 
-#include <filesystem> // for path, remove, temp_directory_path, perm_options, permissions, perms
-#include <fstream>    // for basic_fstream, basic_ios, basic_ofstream, fstream, ios, ofstream
-#include <string>     // for basic_string
+#include <filesystem>  // for path, remove, temp_directory_path, perm_options, permissions, perms
+#include <fstream>     // for basic_fstream, basic_ios, basic_ofstream, fstream, ios, ofstream
+#include <string>      // for basic_string
+#include <string_view> // for basic_string_view
 
 #include <hibf/test/file_access.hpp> // for write_access, read_access
 

@@ -12,7 +12,7 @@
 #include <gtest/gtest.h> // for AssertionResult, Message, EXPECT_TRUE, TestPartResult
 
 #include <fstream>     // for basic_ifstream, basic_ios, basic_ofstream, ios, ifstream, ofs...
-#include <string>      // for basic_string
+#include <string_view> // for basic_string_view
 #include <type_traits> // for remove_cvref_t
 
 #include <cereal/archives/binary.hpp>          // for BinaryInputArchive, BinaryOutputArchive

@@ -4,16 +4,17 @@
 
 // Authored by: Rene Rahn <rene.rahn AT fu-berlin.de>
 
-#include <gtest/gtest.h> // for AssertionResult, Message, TestPartResult, Test, EXPECT_TRUE
+#include <gtest/gtest.h> // for AssertionResult, Message, TestPartResult, Test, CmpHelperEQ
 
-#include <algorithm>        // for for_each
+#include <algorithm>        // for __count, count, for_each
 #include <concepts>         // for convertible_to, same_as, integral
 #include <cstddef>          // for size_t
 #include <initializer_list> // for initializer_list
 #include <iterator>         // for output_iterator, random_access_iterator_tag
-#include <ranges>           // for __fn, cbegin, cend
+#include <ranges>           // for __fn, cend, cbegin
 #include <stdexcept>        // for out_of_range
 #include <string>           // for basic_string
+#include <string_view>      // for basic_string_view
 #include <utility>          // for as_const, move
 #include <vector>           // for vector
 

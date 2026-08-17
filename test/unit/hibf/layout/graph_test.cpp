@@ -4,10 +4,11 @@
 
 #include <gtest/gtest.h> // for Message, TestPartResult, CmpHelperEQ, CmpHelperEQFailure, EXPECT_EQ, Test
 
-#include <cstddef>  // for size_t
-#include <optional> // for optional
-#include <string>   // for basic_string
-#include <vector>   // for vector
+#include <cstddef>     // for size_t
+#include <optional>    // for optional
+#include <string>      // for basic_string
+#include <string_view> // for basic_string_view
+#include <vector>      // for vector
 
 #include <hibf/layout/graph.hpp>  // for graph
 #include <hibf/layout/layout.hpp> // for layout

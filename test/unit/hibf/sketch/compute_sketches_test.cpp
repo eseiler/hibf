@@ -4,12 +4,13 @@
 
 #include <gtest/gtest.h> // for Message, TestPartResult, CmpHelperEQ, CmpHelperEQFailure, Assert...
 
-#include <cstddef>    // for size_t
-#include <functional> // for function
-#include <ranges>     // for __fn, iota, views
-#include <stdexcept>  // for runtime_error
-#include <string>     // for basic_string
-#include <vector>     // for vector
+#include <cstddef>     // for size_t
+#include <functional>  // for function
+#include <ranges>      // for __fn, iota, views
+#include <stdexcept>   // for runtime_error
+#include <string>      // for basic_string
+#include <string_view> // for basic_string_view
+#include <vector>      // for vector
 
 #include <hibf/config.hpp>                  // for config, insert_iterator
 #include <hibf/sketch/compute_sketches.hpp> // for compute_sketches
