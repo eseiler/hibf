@@ -65,12 +65,12 @@ set (CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
 # Check supported compilers
 # ----------------------------------------------------------------------------
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12)
-    hibf_config_error ("GCC < 12 is not supported. The detected compiler version is ${CMAKE_CXX_COMPILER_VERSION}.")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14)
+    hibf_config_error ("GCC < 14 is not supported. The detected compiler version is ${CMAKE_CXX_COMPILER_VERSION}.")
 endif ()
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
-    hibf_config_error ("Clang < 17 is not supported. The detected compiler version is ${CMAKE_CXX_COMPILER_VERSION}.")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 20)
+    hibf_config_error ("Clang < 20 is not supported. The detected compiler version is ${CMAKE_CXX_COMPILER_VERSION}.")
 endif ()
 
 # ----------------------------------------------------------------------------
@@ -79,6 +79,28 @@ endif ()
 
 include ("${HIBF_SOURCE_DIR}/test/cmake/hibf_require_ccache.cmake")
 hibf_require_ccache ()
+
+# ----------------------------------------------------------------------------
+# Optional: C++20 modules
+# ----------------------------------------------------------------------------
+
+# The module is an addition, not a replacement: the headers and libhibf.a are the same either way. See src/hibf.cppm.
+option (HIBF_MODULE "Additionally build the `hibf` C++20 module. Consumers may then use `import hibf;`." OFF)
+
+if (HIBF_MODULE)
+    if (CMAKE_VERSION VERSION_LESS 3.28)
+        hibf_config_error ("HIBF_MODULE requires CMake >= 3.28. The detected version is ${CMAKE_VERSION}.")
+    endif ()
+
+    # CMake can only order module builds with a generator that supports dynamic dependencies.
+    if (NOT CMAKE_GENERATOR MATCHES "Ninja")
+        hibf_config_error ("HIBF_MODULE requires Ninja, not the ${CMAKE_GENERATOR} generator.")
+    endif ()
+
+    hibf_config_print ("C++20 module:               enabled")
+else ()
+    hibf_config_print ("C++20 module:               disabled")
+endif ()
 
 # ----------------------------------------------------------------------------
 # Required: 128 bit unsigned integer extension

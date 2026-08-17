@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2006-2026, Knut Reinert & Freie Universität Berlin
+# SPDX-FileCopyrightText: 2016-2026, Knut Reinert & MPI für molekulare Genetik
+# SPDX-License-Identifier: CC0-1.0
+
+name: Module
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    types:
+      - unlabeled
+  workflow_dispatch:
+
+concurrency:
+  group: module-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
+
+env:
+  TZ: Europe/Berlin
+
+defaults:
+  run:
+    shell: bash -Eexuo pipefail {0}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.compiler }}
+    if: github.repository_owner == 'seqan' || github.event_name == 'workflow_dispatch' || github.event.label.name == 'lint'
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: ["clang-latest", "gcc-latest"]
+    container:
+      image: ghcr.io/seqan/${{ matrix.compiler }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup cache
+        uses: seqan/actions/setup-actions-cache@main
+
+      - name: Configure tests
+        run: |
+          mkdir build && cd build
+          cmake ../test/module -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR=Ninja
+          ninja gtest_main
+
+      - name: Build tests
+        working-directory: build
+        run: |
+          ccache -z
+          ninja -k 0
+
+      - name: Run tests
+        working-directory: build
+        run: ctest . -j --output-on-failure --no-tests=error
+
+      - name: Install dependencies
+        run: |
+          apt-get update 1>/dev/null
+          apt-get install --yes --no-install-recommends \
+            libcereal-dev \
+            libgtest-dev \
+            libsimde-dev \
+            pkgconf \
+            1>/dev/null
+
+      - name: Install hibf
+        run: |
+          mkdir build_install && cd build_install
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR=Ninja -DHIBF_MODULE=ON
+          ninja install
+
+      - name: Configure post-install tests
+        run: |
+          mkdir build_post_install && cd build_post_install
+          cmake ../test/module -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR=Ninja -DHIBF_POST_INSTALL_TEST=ON
+
+      - name: Build post-install tests
+        working-directory: build_post_install
+        run: |
+          ninja -k 0
+          ccache -sv
+
+      - name: Run post-install tests
+        working-directory: build_post_install
+        run: ctest . -j --output-on-failure --no-tests=error

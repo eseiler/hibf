@@ -38,27 +38,27 @@ namespace seqan::hibf::prefix
  * ```
  * \{
  */
-constexpr std::string_view meta_header{"@"};
+inline constexpr std::string_view meta_header{"@"};
 
-constexpr std::string_view meta_hibf_config_start{"@HIBF_CONFIG"};
+inline constexpr std::string_view meta_hibf_config_start{"@HIBF_CONFIG"};
 static_assert(meta_hibf_config_start.starts_with(meta_header));
 
-constexpr std::string_view meta_hibf_config_end{"@HIBF_CONFIG_END"};
+inline constexpr std::string_view meta_hibf_config_end{"@HIBF_CONFIG_END"};
 static_assert(meta_hibf_config_end.starts_with(meta_header));
 
-constexpr std::string_view layout_header{"#"};
+inline constexpr std::string_view layout_header{"#"};
 
-constexpr std::string_view layout_top_level{"TOP_LEVEL_IBF"};
+inline constexpr std::string_view layout_top_level{"TOP_LEVEL_IBF"};
 
-constexpr std::string_view layout_lower_level{"LOWER_LEVEL_IBF"};
+inline constexpr std::string_view layout_lower_level{"LOWER_LEVEL_IBF"};
 
-constexpr std::string_view layout_fullest_technical_bin_idx{"fullest_technical_bin_idx:"};
+inline constexpr std::string_view layout_fullest_technical_bin_idx{"fullest_technical_bin_idx:"};
 
-constexpr std::string_view layout_first_header_line{"#TOP_LEVEL_IBF"};
+inline constexpr std::string_view layout_first_header_line{"#TOP_LEVEL_IBF"};
 static_assert(layout_first_header_line.starts_with(layout_header));
 static_assert(layout_first_header_line.ends_with(layout_top_level));
 
-constexpr std::string_view layout_column_names{"#USER_BIN_IDX\tTECHNICAL_BIN_INDICES\tNUMBER_OF_TECHNICAL_BINS"};
+inline constexpr std::string_view layout_column_names{"#USER_BIN_IDX\tTECHNICAL_BIN_INDICES\tNUMBER_OF_TECHNICAL_BINS"};
 static_assert(layout_column_names.starts_with(layout_header));
 //!\}
 

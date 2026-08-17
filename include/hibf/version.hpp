@@ -53,17 +53,17 @@ namespace seqan::hibf
 {
 
 //!\brief The major version.
-constexpr uint8_t hibf_version_major = HIBF_VERSION_MAJOR;
+inline constexpr uint8_t hibf_version_major = HIBF_VERSION_MAJOR;
 //!\brief The minor version.
-constexpr uint8_t hibf_version_minor = HIBF_VERSION_MINOR;
+inline constexpr uint8_t hibf_version_minor = HIBF_VERSION_MINOR;
 //!\brief The patch version.
-constexpr uint8_t hibf_version_patch = HIBF_VERSION_PATCH;
+inline constexpr uint8_t hibf_version_patch = HIBF_VERSION_PATCH;
 
 //!\brief The full version as `std::size_t`.
-constexpr std::size_t hibf_version = HIBF_VERSION;
+inline constexpr std::size_t hibf_version = HIBF_VERSION;
 
 //!\brief The full version as null terminated string.
-constexpr char const * hibf_version_cstring = HIBF_VERSION_CSTRING;
+inline constexpr char const * hibf_version_cstring = HIBF_VERSION_CSTRING;
 
 } // namespace seqan::hibf
 

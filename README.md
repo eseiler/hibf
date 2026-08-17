@@ -162,3 +162,46 @@ int main()
 <!-- The below code snippet is automatically added from ./test/snippet/readme.cpp -->
 <!-- MARKDOWN-AUTO-DOCS:END -->
 
+## C++20 modules (experimental)
+
+HIBF can additionally be consumed as a named module. Configure with `-DHIBF_MODULE=ON`:
+
+```bash
+cmake -S . -B build -G Ninja -DHIBF_MODULE=ON
+```
+
+`seqan::hibf` then also carries a `CXX_MODULES` file set, and consumers can write:
+
+```cpp
+#include <cstddef>
+#include <vector>
+
+import hibf;
+
+int main()
+{
+    seqan::hibf::interleaved_bloom_filter ibf{seqan::hibf::bin_count{64u}, seqan::hibf::bin_size{1024u}};
+    ibf.emplace(126u, seqan::hibf::bin_index{0u});
+
+    auto agent = ibf.containment_agent();
+    return agent.bulk_contains(126u)[0u] ? 0 : 1;
+}
+```
+
+On top of HIBF's usual requirements, this needs CMake >= 3.28 and the Ninja generator; every compiler
+HIBF supports can build the module. CI covers the latest GCC and Clang version.
+
+The switch is additive rather than exclusive. `src/hibf.cppm` includes the headers in its *global module fragment*, so
+imported and included declarations name the same entities:
+
+* `libhibf.a` is the same either way; the module adds one almost empty object file.
+* Headers keep working unchanged, and a single translation unit may both `#include <hibf/...>` and `import hibf;`.
+  Downstream projects can therefore migrate file by file.
+* `HIBF_HAS_MODULE` is defined when the module was built, for code that has to support both modes.
+
+Two caveats:
+
+* Only the names listed in `src/hibf.cppm` are visible to importers. `seqan::stl` (the `include/hibf/contrib` standard
+  library backports) is not exported; use the headers for those.
+* GCC 16 rejects a textual `#include` that appears *after* an `import hibf;` in the same translation unit. Put includes
+  first. Clang accepts either order.
