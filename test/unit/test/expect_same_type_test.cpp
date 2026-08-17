@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>     // for Test, Message, AssertionResult, TestPartResult, TestInfo, TEST
 
 #include <string>      // for basic_string
+#include <string_view> // for basic_string_view
 #include <tuple>       // for tuple
 #include <type_traits> // for type_identity
 

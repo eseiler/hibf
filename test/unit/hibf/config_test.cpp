@@ -4,12 +4,13 @@
 
 #include <gtest/gtest.h> // for Message, TestPartResult, CmpHelperEQ, CmpHelperEQFailure, EXPEC...
 
-#include <cstddef>    // for size_t
-#include <functional> // for function
-#include <sstream>    // for basic_stringstream, stringstream
-#include <stdexcept>  // for invalid_argument
-#include <string>     // for basic_string, allocator, char_traits, string
-#include <utility>    // for move
+#include <cstddef>     // for size_t
+#include <functional>  // for function
+#include <sstream>     // for basic_stringstream, stringstream
+#include <stdexcept>   // for invalid_argument
+#include <string>      // for basic_string, allocator, char_traits, string
+#include <string_view> // for basic_string_view
+#include <utility>     // for move
 
 #include <hibf/config.hpp>                   // for config, insert_iterator
 #include <hibf/misc/add_empty_bins.hpp>      // for add_empty_bins

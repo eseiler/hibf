@@ -4,10 +4,11 @@
 
 #include <gtest/gtest.h> // for Test, AssertionResult, Message, TestInfo, EXPECT_TRUE, TEST
 
-#include <cstddef>    // for size_t
-#include <functional> // for function
-#include <string>     // for basic_string
-#include <vector>     // for vector
+#include <cstddef>     // for size_t
+#include <functional>  // for function
+#include <string>      // for basic_string
+#include <string_view> // for basic_string_view
+#include <vector>      // for vector
 
 #include <hibf/config.hpp>                      // for insert_iterator, config
 #include <hibf/layout/compute_layout.hpp>       // for compute_layout
