@@ -33,6 +33,6 @@ struct print_t
     void operator()(std::vector<uint64_t> const & vector, std::ostream & stream = std::cout) const;
 };
 
-static inline constexpr auto print = print_t{};
+inline constexpr auto print = print_t{};
 
 } // namespace seqan::hibf

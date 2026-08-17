@@ -10,6 +10,17 @@ if (TARGET simde)
     list (APPEND HIBF_EXPORT_TARGETS "simde")
 endif ()
 
+# The module interface unit is installed as a source file: importers compile it themselves, because a BMI is only
+# valid for the exact compiler and flags that produced it. `install (EXPORT ... CXX_MODULES_DIRECTORY)` writes the
+# per-configuration properties that tell a consuming project how to do that.
+if (HIBF_MODULE)
+    set (HIBF_INSTALL_MODULE_ARGS FILE_SET hibf_module DESTINATION "${CMAKE_INSTALL_DATADIR}/hibf/module")
+    set (HIBF_EXPORT_MODULE_ARGS CXX_MODULES_DIRECTORY "hibf-modules")
+else ()
+    set (HIBF_INSTALL_MODULE_ARGS "")
+    set (HIBF_EXPORT_MODULE_ARGS "")
+endif ()
+
 # cmake-format: off
 install (TARGETS ${HIBF_EXPORT_TARGETS}
          EXPORT hibf_targets
@@ -17,7 +28,8 @@ install (TARGETS ${HIBF_EXPORT_TARGETS}
          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-         FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR})
+         FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
+         ${HIBF_INSTALL_MODULE_ARGS})
 # cmake-format: on
 
 install (DIRECTORY "${HIBF_HEADER_PATH}/hibf" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -26,7 +38,8 @@ install (EXPORT hibf_targets
          NAMESPACE seqan::
          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/hibf
          EXPORT_LINK_INTERFACE_LIBRARIES
-         FILE hibf-targets.cmake)
+         FILE hibf-targets.cmake
+         ${HIBF_EXPORT_MODULE_ARGS})
 
 include (CMakePackageConfigHelpers)
 configure_package_config_file (cmake/hibf-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/hibf-config.cmake

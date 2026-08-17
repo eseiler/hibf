@@ -37,4 +37,21 @@ if (NOT TARGET hibf)
 
     target_include_directories (hibf PUBLIC "$<BUILD_INTERFACE:${HIBF_HEADER_PATH}>"
                                             "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+
+    if (HIBF_MODULE)
+        # The module interface unit includes all headers in its global module fragment, so it declares exactly the
+        # entities that ${HIBF_SOURCE_FILES} define. Those sources neither import nor export anything; skipping the
+        # scanner for them keeps the dependency graph (and the build) as it is in a header build.
+        set_source_files_properties (${HIBF_SOURCE_FILES} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+
+        # cmake-format: off
+        target_sources (hibf
+                        PUBLIC FILE_SET hibf_module TYPE CXX_MODULES
+                               BASE_DIRS "${CMAKE_CURRENT_LIST_DIR}"
+                               FILES "${CMAKE_CURRENT_LIST_DIR}/hibf.cppm")
+        # cmake-format: on
+
+        # Lets downstream code branch on the build mode.
+        target_compile_definitions (hibf PUBLIC "HIBF_HAS_MODULE=1")
+    endif ()
 endif ()

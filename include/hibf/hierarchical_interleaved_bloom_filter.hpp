@@ -33,9 +33,9 @@ namespace bin_kind
 {
 
 //!\brief The value that indicates a merged bin.
-static constexpr uint64_t merged{std::numeric_limits<uint64_t>::max()};
+inline constexpr uint64_t merged{std::numeric_limits<uint64_t>::max()};
 //!\brief The value that indicates a deleted bin.
-static constexpr uint64_t deleted{std::numeric_limits<uint64_t>::max() - 1u};
+inline constexpr uint64_t deleted{std::numeric_limits<uint64_t>::max() - 1u};
 
 } // namespace bin_kind
 
