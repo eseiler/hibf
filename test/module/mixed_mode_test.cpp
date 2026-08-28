@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 /*!\file
- * \brief Checks that headers and `import hibf;` can be mixed within one translation unit.
+ * \brief Checks that headers and `import seqan.hibf;` can be mixed within one translation unit.
  * \details
- * Because src/hibf.cppm includes the headers in its global module fragment, an imported entity and an included entity
- * are the *same* entity. A project can therefore migrate to the module file by file instead of all at once.
+ * Because src/seqan.hibf.cppm includes the headers in its global module fragment, an imported entity and an included
+ * entity are the *same* entity. A project can therefore migrate to the module file by file instead of all at once.
  */
 
 #include <gtest/gtest.h>
@@ -17,7 +17,7 @@
 #include <hibf/interleaved_bloom_filter.hpp>
 #include <hibf/misc/bit_vector.hpp>
 
-import hibf;
+import seqan.hibf;
 
 TEST(mixed_mode_test, same_entity)
 {

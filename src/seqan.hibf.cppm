@@ -4,7 +4,7 @@
 
 /*!\file
  * \author Enrico Seiler <enrico.seiler AT fu-berlin.de>
- * \brief Provides the `hibf` C++20 module.
+ * \brief Provides the `seqan.hibf` C++20 module.
  *
  * \details
  *
@@ -14,14 +14,15 @@
  * * `libhibf.a` is bit-identical whether or not the module is built; the module adds one (almost empty) object file.
  * * The source files in `src` need no changes: they are ordinary translation units, and the symbols they define are
  *   the same symbols the module declares.
- * * A translation unit may `#include <hibf/...>` and `import hibf;` at the same time. Both refer to the same entities,
- *   so there is no ODR hazard and downstream projects can migrate file by file.
+ * * A translation unit may `#include <hibf/...>` and `import seqan.hibf;` at the same time. Both refer to the same
+ *   entities, so there is no ODR hazard and downstream projects can migrate file by file.
  *
  * The price is that the exported names have to be listed explicitly below. Names that are absent from this list are
  * still *reachable* (e.g. a member function of an exported class can use them), just not *visible* to importers.
  *
  * \attention GCC (as of 16.2) rejects a textual `#include` of a standard library header that appears *after* an
- *            `import hibf;` in the same translation unit. Put includes before imports. Clang has no such restriction.
+ *            `import seqan.hibf;` in the same translation unit. Put includes before imports. Clang has no such
+ *            restriction.
  */
 
 module;
@@ -75,7 +76,7 @@ module;
 //  Module purview
 // ============================================================================
 
-export module hibf;
+export module seqan.hibf;
 
 //!\brief The main namespace of the HIBF library.
 export namespace seqan::hibf

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 /*!\file
- * \brief Checks that the public API is usable through `import hibf;`.
+ * \brief Checks that the public API is usable through `import seqan.hibf;`.
  * \details
  * Every textual `#include` must appear before the `import`: GCC 16 rejects the reverse order (it sees the standard
  * library declarations of the global module fragment a second time). Clang accepts both orders.
@@ -20,7 +20,7 @@
 
 #include <cereal/archives/binary.hpp>
 
-import hibf;
+import seqan.hibf;
 
 TEST(module_test, version)
 {
@@ -124,7 +124,7 @@ TEST(module_test, serialisation)
 TEST(module_test, path_serialisation)
 {
     // hibf/cereal/path.hpp adds `save`/`load` overloads in namespace cereal. cereal finds them by ADL, so they have to
-    // be visible to importers, not merely reachable. See the `export namespace cereal` block in src/hibf.cppm.
+    // be visible to importers, not merely reachable. See the `export namespace cereal` block in src/seqan.hibf.cppm.
     std::filesystem::path const original{"/some/random/path.txt"};
 
     std::stringstream stream{};
