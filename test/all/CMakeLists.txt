@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.20...3.31)
 project (hibf_test)
 
 option (INSTALL_HIBF "" OFF)
-option (HIBF_MODULE "Additionally build the `hibf` C++20 module." OFF)
+option (HIBF_MODULE "Additionally build the `seqan.hibf` C++20 module." OFF)
 enable_testing ()
 add_subdirectory (../unit/ unit)
 add_subdirectory (../performance/ performance)

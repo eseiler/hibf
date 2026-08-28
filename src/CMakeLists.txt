@@ -48,7 +48,7 @@ if (NOT TARGET hibf)
         target_sources (hibf
                         PUBLIC FILE_SET hibf_module TYPE CXX_MODULES
                                BASE_DIRS "${CMAKE_CURRENT_LIST_DIR}"
-                               FILES "${CMAKE_CURRENT_LIST_DIR}/hibf.cppm")
+                               FILES "${CMAKE_CURRENT_LIST_DIR}/seqan.hibf.cppm")
         # cmake-format: on
 
         # Lets downstream code branch on the build mode.

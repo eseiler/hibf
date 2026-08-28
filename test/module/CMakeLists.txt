@@ -6,10 +6,10 @@
 cmake_minimum_required (VERSION 3.28...3.31)
 project (hibf_test_module CXX)
 
-# These tests `import hibf;`, so the module has to be part of the library.
+# These tests `import seqan.hibf;`, so the module has to be part of the library.
 set (HIBF_MODULE
      ON
-     CACHE BOOL "Additionally build the `hibf` C++20 module." FORCE)
+     CACHE BOOL "Additionally build the `seqan.hibf` C++20 module." FORCE)
 
 include (../hibf-test.cmake)
 include (GoogleTest OPTIONAL)
@@ -31,7 +31,7 @@ macro (hibf_module_test module_test_cpp)
     add_executable (${target} ${module_test_cpp})
     # This is `hibf::test::unit` spelled out. `seqan::hibf` has to be a *direct* link dependency: with
     # HIBF_POST_INSTALL_TEST it is an IMPORTED target, and CMake (4.0) does not propagate the module usage requirements
-    # of an imported target through an intermediate INTERFACE library -- `import hibf;` then fails with "no such
+    # of an imported target through an intermediate INTERFACE library -- `import seqan.hibf;` then fails with "no such
     # module". Going through `hibf::test::unit` as well would put libhibf.a on the link line twice, which Clang's
     # ThinLTO rejects.
     target_link_libraries (${target} GTest::gtest_main seqan::hibf)

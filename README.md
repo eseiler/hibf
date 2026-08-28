@@ -176,7 +176,7 @@ cmake -S . -B build -G Ninja -DHIBF_MODULE=ON
 #include <cstddef>
 #include <vector>
 
-import hibf;
+import seqan.hibf;
 
 int main()
 {
@@ -191,17 +191,17 @@ int main()
 On top of HIBF's usual requirements, this needs CMake >= 3.28 and the Ninja generator; every compiler
 HIBF supports can build the module. CI covers the latest GCC and Clang version.
 
-The switch is additive rather than exclusive. `src/hibf.cppm` includes the headers in its *global module fragment*, so
-imported and included declarations name the same entities:
+The switch is additive rather than exclusive. `src/seqan.hibf.cppm` includes the headers in its *global module
+fragment*, so imported and included declarations name the same entities:
 
 * `libhibf.a` is the same either way; the module adds one almost empty object file.
-* Headers keep working unchanged, and a single translation unit may both `#include <hibf/...>` and `import hibf;`.
+* Headers keep working unchanged, and a single translation unit may both `#include <hibf/...>` and `import seqan.hibf;`.
   Downstream projects can therefore migrate file by file.
 * `HIBF_HAS_MODULE` is defined when the module was built, for code that has to support both modes.
 
 Two caveats:
 
-* Only the names listed in `src/hibf.cppm` are visible to importers. `seqan::stl` (the `include/hibf/contrib` standard
-  library backports) is not exported; use the headers for those.
-* GCC 16 rejects a textual `#include` that appears *after* an `import hibf;` in the same translation unit. Put includes
-  first. Clang accepts either order.
+* Only the names listed in `src/seqan.hibf.cppm` are visible to importers. `seqan::stl` (the `include/hibf/contrib`
+  standard library backports) is not exported; use the headers for those.
+* GCC 16 rejects a textual `#include` that appears *after* an `import seqan.hibf;` in the same translation unit. Put
+  includes first. Clang accepts either order.

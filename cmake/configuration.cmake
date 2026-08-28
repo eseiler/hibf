@@ -84,8 +84,9 @@ hibf_require_ccache ()
 # Optional: C++20 modules
 # ----------------------------------------------------------------------------
 
-# The module is an addition, not a replacement: the headers and libhibf.a are the same either way. See src/hibf.cppm.
-option (HIBF_MODULE "Additionally build the `hibf` C++20 module. Consumers may then use `import hibf;`." OFF)
+# The module is an addition, not a replacement: the headers and libhibf.a are the same either way.
+# See src/seqan.hibf.cppm.
+option (HIBF_MODULE "Additionally build the `seqan.hibf` C++20 module, enabling `import seqan.hibf;`." OFF)
 
 if (HIBF_MODULE)
     if (CMAKE_VERSION VERSION_LESS 3.28)
