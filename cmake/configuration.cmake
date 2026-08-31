@@ -219,6 +219,12 @@ cmake_dependent_option (HIBF_NATIVE_BUILD "Optimize build for current architectu
 if (HIBF_NATIVE_BUILD)
     list (APPEND HIBF_CXX_FLAGS "-march=native")
     hibf_config_print ("Optimize build:             via -march=native")
+    # On some Intel CPUs, `-march=native` enables `avx10.1-256` alongside AVX-512. icpx warns about this
+    # combination before promoting it to `avx10.1-512`, which is what we want anyway.
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "IntelLLVM")
+        list (APPEND HIBF_CXX_FLAGS "-Wno-invalid-feature-combination")
+        hibf_config_print ("Suppressing AVX10 warnings: via -Wno-invalid-feature-combination")
+    endif ()
 else ()
     check_cxx_compiler_flag ("-mpopcnt" HIBF_HAS_POPCNT)
     if (HIBF_HAS_POPCNT)
