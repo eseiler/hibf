@@ -2,17 +2,32 @@
 // SPDX-FileCopyrightText: 2016-2026, Knut Reinert & MPI für molekulare Genetik
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <algorithm>   // for find, max
+#include <algorithm>   // for find_if, sort, unique, adjacent_find, equal_range, mismatch, transform, max
 #include <cassert>     // for assert
 #include <charconv>    // for from_chars, from_chars_result
+#include <cmath>       // for floor
+#include <compare>     // for operator<=>
 #include <cstddef>     // for size_t
-#include <iostream>    // for operator<<, char_traits, basic_ostream, basic_istream, istream, ostream
+#include <format>      // for format, format_to
+#include <iostream>    // for operator<<, char_traits, basic_ostream, basic_istream, istream, ostream, cerr
+#include <iterator>    // for back_inserter
+#include <limits>      // for numeric_limits
+#include <map>         // for map
+#include <memory>      // for addressof
+#include <optional>    // for optional, nullopt
+#include <ranges>      // for iota
+#include <stdexcept>   // for invalid_argument
 #include <string>      // for basic_string, getline, string
 #include <string_view> // for operator<<, string_view, operator==, basic_string_view
+#include <utility>     // for move
 #include <vector>      // for vector
 
-#include <hibf/layout/layout.hpp>   // for layout, operator<<
-#include <hibf/layout/prefixes.hpp> // for layout_lower_level, layout_column_names, layout_fullest_technical_bin_idx
+#include <hibf/config.hpp>                   // for config
+#include <hibf/layout/layout.hpp>            // for layout, operator<<
+#include <hibf/layout/prefixes.hpp>          // for layout_lower_level, layout_column_names, layout_fullest_techni...
+#include <hibf/misc/add_empty_bins.hpp>      // for add_empty_bins
+#include <hibf/misc/next_multiple_of_64.hpp> // for next_multiple_of_64
+#include <hibf/misc/subtract_empty_bins.hpp> // for subtract_empty_bins
 
 namespace seqan::hibf::layout
 {
@@ -151,12 +166,419 @@ void seqan::hibf::layout::layout::clear()
     user_bins.clear();
 }
 
+namespace
+{
+
+// A range of technical bins within one IBF. Either a single merged bin, or the technical bins of one user bin.
+struct occupied_bins
+{
+    size_t first{};
+    size_t last{}; // inclusive
+    bool is_merged{};
+    size_t user_bin{}; // 0 for merged bins
+
+    friend auto operator<=>(occupied_bins const &, occupied_bins const &) = default;
+};
+
+struct ibf_bins
+{
+    ibf_bins() = default;
+    ibf_bins(ibf_bins const &) = default;
+    ibf_bins & operator=(ibf_bins const &) = default;
+    ibf_bins(ibf_bins &&) = default;
+    ibf_bins & operator=(ibf_bins &&) = default;
+    ~ibf_bins() = default;
+
+    std::vector<occupied_bins> bins{};
+    bool has_max_bin{};
+};
+
+// The merged bin or user bin starting at `technical_bin` in `bins` (sorted, non-overlapping), or nullptr.
+occupied_bins const * find_first_occupied_bin(std::vector<occupied_bins> const & bins, size_t const technical_bin)
+{
+    auto const range = std::ranges::equal_range(bins, technical_bin, {}, &occupied_bins::first);
+    return range.empty() ? nullptr : std::addressof(range.front());
+}
+
+// "Root-IBF" for the top-level IBF, or "IBF 2;3" for the IBF below merged bin 3 of the IBF below merged bin 2 of the
+// top-level IBF. "IBF 0" is the IBF below merged bin 0 of the top-level IBF.
+std::string ibf_name(std::vector<size_t> const & path)
+{
+    std::string result{path.empty() ? "Root-IBF" : "IBF "};
+    for (size_t const technical_bin : path)
+        std::format_to(std::back_inserter(result), "{};", technical_bin);
+    if (!path.empty())
+        result.pop_back();
+    return result;
+}
+
+} // namespace
+
+bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_handler const & handler) const
+{
+    using code = diagnostic::code;
+    using severity = diagnostic::severity;
+
+    auto report = [&handler](diagnostic const & finding)
+    {
+        if (handler)
+            handler(finding);
+    };
+
+    auto error = [&report](diagnostic finding)
+    {
+        finding.level = severity::error;
+        report(finding);
+        return false;
+    };
+
+    constexpr size_t max_size_t{std::numeric_limits<size_t>::max()};
+    // The largest number of technical bins of an IBF that next_multiple_of_64 can round up without overflow.
+    constexpr size_t max_ibf_technical_bins{max_size_t - 63u};
+
+    if (user_bins.empty())
+        return error({.what = code::empty_layout, .message = "The layout contains no user bins."});
+
+    // Checks that only concern a single user bin.
+    for (auto const & ub : user_bins)
+    {
+        if (ub.number_of_technical_bins == 0u)
+            return error({.what = code::no_technical_bins,
+                          .ibf = ub.previous_TB_indices,
+                          .user_bin = ub.idx,
+                          .technical_bin = ub.storage_TB_id,
+                          .message = std::format("User bin {} occupies zero technical bins.", ub.idx)});
+
+        // The graph computes the number of technical bins of an IBF as `storage_TB_id + number_of_technical_bins` and
+        // `merged bin + 1`. The build rounds it up to a multiple of 64.
+        if (ub.storage_TB_id >= max_ibf_technical_bins
+            || ub.number_of_technical_bins > max_ibf_technical_bins - ub.storage_TB_id)
+            return error({.what = code::technical_bin_overflow,
+                          .ibf = ub.previous_TB_indices,
+                          .user_bin = ub.idx,
+                          .technical_bin = ub.storage_TB_id,
+                          .message = std::format("User bin {}: The technical bin range starting at {} with {} "
+                                                 "technical bin{} overflows.",
+                                                 ub.idx,
+                                                 ub.storage_TB_id,
+                                                 ub.number_of_technical_bins,
+                                                 (ub.number_of_technical_bins == 1u) ? "" : "s")});
+
+        if (auto it = std::ranges::find_if(ub.previous_TB_indices,
+                                           [](size_t const merged_bin)
+                                           {
+                                               return merged_bin >= max_ibf_technical_bins;
+                                           });
+            it != ub.previous_TB_indices.end())
+        {
+            std::vector<size_t> path(ub.previous_TB_indices.begin(), it);
+            std::string message =
+                std::format("User bin {}: The merged bin {} of {} on its path overflows.", ub.idx, *it, ibf_name(path));
+            return error({.what = code::technical_bin_overflow,
+                          .ibf = std::move(path),
+                          .user_bin = ub.idx,
+                          .technical_bin = *it,
+                          .message = std::move(message)});
+        }
+
+        if (ub.idx >= config.number_of_user_bins)
+            return error({.what = code::user_bin_out_of_range,
+                          .ibf = ub.previous_TB_indices,
+                          .user_bin = ub.idx,
+                          .message = std::format("User bin index {} is not below the number of user bins ({}).",
+                                                 ub.idx,
+                                                 config.number_of_user_bins)});
+    }
+
+    // Checks that concern the set of user bin indices.
+    {
+        std::vector<size_t> indices(user_bins.size());
+        std::ranges::transform(user_bins, indices.begin(), &user_bin::idx);
+        std::ranges::sort(indices);
+
+        if (auto it = std::ranges::adjacent_find(indices); it != indices.end())
+            return error({.what = code::duplicate_user_bin,
+                          .user_bin = *it,
+                          .message = std::format("User bin {} occurs more than once.", *it)});
+
+        if (indices.size() != config.number_of_user_bins)
+        {
+            // The indices are unique and below number_of_user_bins. The first index that differs from its position
+            // is missing.
+            size_t const missing = std::ranges::mismatch(indices, std::views::iota(size_t{})).in1 - indices.begin();
+            return error({.what = code::missing_user_bin,
+                          .user_bin = missing,
+                          .message = std::format("User bin {} is missing from the layout.", missing)});
+        }
+    }
+
+    // An IBF is identified by the merged bins on the path from the top-level IBF.
+    std::map<std::vector<size_t>, ibf_bins> ibfs{};
+
+    for (auto const & ub : user_bins)
+    {
+        std::vector<size_t> path{};
+        for (size_t const technical_bin : ub.previous_TB_indices)
+        {
+            // Every user bin below a merged bin passes through it. Skip the entry if it repeats the previous one,
+            // which is the case if the user bins below a merged bin are consecutive (e.g., compute_layout).
+            // Other repetitions are removed after sorting.
+            occupied_bins const merged_bin{technical_bin, technical_bin, true, 0u};
+            if (auto & bins = ibfs[path].bins; bins.empty() || bins.back() != merged_bin)
+                bins.push_back(merged_bin);
+            path.push_back(technical_bin);
+        }
+
+        size_t const last = ub.storage_TB_id + ub.number_of_technical_bins - 1u;
+        ibfs[path].bins.push_back({ub.storage_TB_id, last, false, ub.idx});
+    }
+
+    // Within each IBF, the occupied ranges must not overlap. Multiple user bins may pass through the same merged bin.
+    // If all adjacent ranges (sorted by first technical bin) are disjoint, all ranges are disjoint.
+    for (auto & [path, ibf] : ibfs)
+    {
+        auto & bins = ibf.bins;
+        std::ranges::sort(bins);
+        bins.erase(std::ranges::unique(bins).begin(), bins.end()); // repeated merged bins; user bins are unique
+        for (size_t i = 1u; i < bins.size(); ++i)
+        {
+            occupied_bins const & previous = bins[i - 1u];
+            occupied_bins const & current = bins[i];
+
+            if (current.first <= previous.last)
+            {
+                // At most one of them is a merged bin: Two distinct merged bins cannot overlap.
+                auto describe = [](occupied_bins const & bin)
+                {
+                    return bin.is_merged ? std::string{"a merged bin"} : std::format("user bin {}", bin.user_bin);
+                };
+                return error({.what = code::overlapping_technical_bins,
+                              .ibf = path,
+                              .user_bin = current.is_merged ? previous.user_bin : current.user_bin,
+                              .technical_bin = current.first,
+                              .message = std::format("In {}, technical bin {} is used by {} and by {}.",
+                                                     ibf_name(path),
+                                                     current.first,
+                                                     describe(previous),
+                                                     describe(current))});
+            }
+        }
+    }
+
+    // The build sizes its FPR correction table by the number of technical bins of the Root-IBF and looks it up with the
+    // number of technical bins of each max bin (build_index, construct_ibf). This only becomes relevant once we expect
+    // layouts where tmax is not a strict upper bound for the number of technical bins of an IBF.
+    size_t const root_technical_bins = ibfs.at({}).bins.back().last + 1u;  // bins are sorted and disjoint
+    size_t const max_bin_limit = next_multiple_of_64(root_technical_bins); // no overflow, see technical_bin_overflow
+
+    auto invalid_max_bin = [&error](std::vector<size_t> const & path, size_t const id)
+    {
+        return error({.what = code::invalid_max_bin,
+                      .ibf = path,
+                      .technical_bin = id,
+                      .message = std::format("The max bin {} of {} is neither a merged bin nor the first technical "
+                                             "bin of a user bin.",
+                                             id,
+                                             ibf_name(path))});
+    };
+
+    for (auto const & [path, id] : max_bins)
+    {
+        if (path.empty())
+            return error({.what = code::top_level_max_bin_entry,
+                          .ibf = std::vector<size_t>{},
+                          .technical_bin = id,
+                          .message = "The max bins contain an entry for the Root-IBF, whose max bin is stored in "
+                                     "top_level_max_bin_id."});
+
+        auto it = ibfs.find(path);
+        if (it == ibfs.end())
+            return error({.what = code::max_bin_without_ibf,
+                          .ibf = path,
+                          .technical_bin = id,
+                          .message = std::format("The max bins contain an entry for {}, which does not exist.",
+                                                 ibf_name(path))});
+
+        if (it->second.has_max_bin)
+            return error({.what = code::duplicate_max_bin,
+                          .ibf = path,
+                          .technical_bin = id,
+                          .message = std::format("The max bins contain more than one entry for {}.", ibf_name(path))});
+
+        occupied_bins const * const max_bin = find_first_occupied_bin(it->second.bins, id);
+        if (max_bin == nullptr)
+            return invalid_max_bin(path, id);
+
+        if (size_t const span = max_bin->last - max_bin->first + 1u; span > max_bin_limit)
+            return error({.what = code::max_bin_exceeds_root,
+                          .ibf = path,
+                          .user_bin = max_bin->user_bin,
+                          .technical_bin = id,
+                          .message = std::format("The max bin {} of {} spans {} technical bins, but at most {} are "
+                                                 "supported (next_multiple_of_64 of the {} technical bins of the "
+                                                 "Root-IBF).",
+                                                 id,
+                                                 ibf_name(path),
+                                                 span,
+                                                 max_bin_limit,
+                                                 root_technical_bins)});
+
+        it->second.has_max_bin = true;
+    }
+
+    for (auto const & [path, ibf] : ibfs)
+        if (!path.empty() && !ibf.has_max_bin)
+            return error({.what = code::missing_max_bin,
+                          .ibf = path,
+                          .message = std::format("The max bins contain no entry for {}.", ibf_name(path))});
+
+    if (size_t const id = top_level_max_bin_id; find_first_occupied_bin(ibfs.at({}).bins, id) == nullptr)
+        return invalid_max_bin({}, id);
+
+    // Warnings and notes do not affect the result.
+    if (!handler)
+        return true;
+
+    // The lowest levels use up to next_multiple_of_64(#user bins) technical bins, which is only bounded by tmax if
+    // tmax is a multiple of 64. config::validate_and_set_defaults() rounds tmax up to a multiple of 64.
+    bool const check_tmax = config.tmax != 0u && config.tmax <= max_ibf_technical_bins;
+    size_t const max_technical_bins = check_tmax ? next_multiple_of_64(config.tmax) : max_size_t;
+    std::string const tmax_name = (!check_tmax || config.tmax == max_technical_bins)
+                                    ? std::string{"tmax"}
+                                    : std::format("tmax {} (rounded up to a multiple of 64)", config.tmax);
+    // The build adds empty bins to each IBF (interleaved_bloom_filter's constructor). An IBF whose last used technical
+    // bin is `last` has next_multiple_of_64(add_empty_bins(last + 1, empty_bin_fraction)) technical bins.
+    // std::nullopt if this does not fit into size_t: add_empty_bins is checked in floating point first.
+    double const empty_bin_fraction =
+        (config.empty_bin_fraction > 0.0 && config.empty_bin_fraction < 1.0) ? config.empty_bin_fraction : 0.0;
+    auto const built_technical_bins = [empty_bin_fraction](size_t const last) -> std::optional<size_t>
+    {
+        if (empty_bin_fraction == 0.0)
+            return next_multiple_of_64(last + 1u); // no overflow, see technical_bin_overflow
+        if (std::floor((last + 1u) / (1.0 - empty_bin_fraction)) >= 0x1p63)
+            return std::nullopt;
+        return next_multiple_of_64(add_empty_bins(last + 1u, empty_bin_fraction));
+    };
+
+    for (auto const & [path, ibf] : ibfs)
+    {
+        auto const & bins = ibf.bins;
+        size_t const last = bins.back().last; // bins are sorted and disjoint
+        std::optional<size_t> const built = built_technical_bins(last);
+
+        // max_technical_bins is a multiple of 64: last >= max_technical_bins implies *built > max_technical_bins.
+        if (check_tmax && (!built.has_value() || *built > max_technical_bins))
+            report({.level = severity::warning,
+                    .what = code::technical_bin_exceeds_tmax,
+                    .ibf = path,
+                    .technical_bin = last,
+                    .message = (last >= max_technical_bins)
+                                 ? std::format("{} uses technical bin {}, but {} allows only {} technical bins.",
+                                               ibf_name(path),
+                                               last,
+                                               tmax_name,
+                                               max_technical_bins)
+                                 : std::format("{} uses technical bin {}. With the empty bins added by the build "
+                                               "(empty_bin_fraction {}), it exceeds the {} technical bins {} allows.",
+                                               ibf_name(path),
+                                               last,
+                                               empty_bin_fraction,
+                                               max_technical_bins,
+                                               tmax_name)});
+
+        if (!path.empty() && bins.size() == 1u)
+        {
+            occupied_bins const & bin = bins.front();
+            report({.level = severity::warning,
+                    .what = code::single_bin_ibf,
+                    .ibf = path,
+                    .user_bin = bin.is_merged ? std::nullopt : std::optional<size_t>{bin.user_bin},
+                    .technical_bin = bin.first,
+                    .message = bin.is_merged
+                                 ? std::format("{} only contains merged bin {}. Moving the IBF below it up would "
+                                               "save a level.",
+                                               ibf_name(path),
+                                               bin.first)
+                                 : std::format("{} only contains user bin {}. Storing it in the parent IBF would "
+                                               "save a level.",
+                                               ibf_name(path),
+                                               bin.user_bin)});
+        }
+
+        // Empty technical bins below the last used technical bin. The used technical bins and the empty bins should
+        // partition the technical bins of an IBF.
+        size_t used{};
+        std::optional<size_t> first_empty{};
+        for (size_t i = 0u; i < bins.size(); ++i)
+        {
+            size_t const next = (i == 0u) ? 0u : bins[i - 1u].last + 1u;
+            if (!first_empty.has_value() && bins[i].first > next)
+                first_empty = next;
+            used += bins[i].last - bins[i].first + 1u;
+        }
+        size_t const intermittent_empty = last + 1u - used;
+
+        // The empty technical bins after the last used technical bin must be as many as empty_bin_fraction implies,
+        // i.e., none if it is 0. Intermittent empty technical bins do not count.
+        if (built.has_value())
+        {
+            size_t const trailing_empty = *built - (last + 1u);
+            size_t const expected_empty = *built - subtract_empty_bins(*built, empty_bin_fraction);
+            if (trailing_empty != expected_empty)
+                report({.level = severity::warning,
+                        .what = code::unexpected_empty_bins,
+                        .ibf = path,
+                        .technical_bin = last,
+                        .message = std::format("{} ends with {} empty technical bin{}, but {} {} expected. There is a "
+                                               "total of {} technical bins and the empty_bin_fraction is {}.",
+                                               ibf_name(path),
+                                               trailing_empty,
+                                               (trailing_empty == 1u) ? "" : "s",
+                                               expected_empty,
+                                               (expected_empty == 1u) ? "is" : "are",
+                                               *built,
+                                               empty_bin_fraction)});
+        }
+
+        if (first_empty.has_value())
+            report({.level = severity::note,
+                    .what = code::empty_technical_bins,
+                    .ibf = path,
+                    .technical_bin = first_empty,
+                    .message = (intermittent_empty == 1u)
+                                 ? std::format("{} uses technical bins 0-{}, but technical bin {} is empty.",
+                                               ibf_name(path),
+                                               last,
+                                               *first_empty)
+                                 : std::format("{} uses technical bins 0-{}, but {} of them are empty; the first one "
+                                               "is {}.",
+                                               ibf_name(path),
+                                               last,
+                                               intermittent_empty,
+                                               *first_empty)});
+    }
+
+    return true;
+}
+
 size_t seqan::hibf::layout::layout::number_of_levels() const
 {
     size_t max_depth{};
     for (auto const & ub : user_bins)
         max_depth = std::max(max_depth, ub.previous_TB_indices.size());
     return user_bins.empty() ? 0u : max_depth + 1u;
+}
+
+void seqan::hibf::layout::layout::throw_on_error(diagnostic const & finding)
+{
+    if (finding.level == diagnostic::severity::error)
+        throw std::invalid_argument{std::format("{}", finding)};
+    if (finding.level == diagnostic::severity::warning)
+        std::cerr << finding << '\n';
+#ifndef NDEBUG
+    if (finding.level == diagnostic::severity::note)
+        std::cerr << finding << '\n';
+#endif
 }
 
 } // namespace seqan::hibf::layout
