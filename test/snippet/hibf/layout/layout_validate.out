@@ -1,7 +1,7 @@
 # collect
 valid: 1, findings: 2
 # print
-[HIBF LAYOUT NOTE] Root-IBF uses technical bins 0-63, but technical bin 1 is empty.
+[HIBF LAYOUT NOTE] The Root-IBF uses technical bins 0-63, but technical bin 1 is empty.
 [HIBF LAYOUT WARNING] IBF 63 only contains user bin 2. Storing it in the parent IBF would save a level.
 valid
 # ignore

@@ -93,6 +93,16 @@ struct layout
 
     void clear();
 
+    /*!\brief Returns the number of levels of the described HIBF.
+     * \returns `0` if there are no user bins, `1` if there is only the top-level IBF, and so on.
+     * \details
+     * Only the user bins are considered.
+     */
+    [[nodiscard]] size_t number_of_levels() const;
+
+    /*!\name Validation
+     * \{
+     */
     /*!\brief A finding of seqan::hibf::layout::layout::validate.
      * \details
      * Errors describe layouts that cannot be used to build an HIBF. Warnings describe layouts that can be used, but
@@ -194,13 +204,6 @@ struct layout
      */
     static void throw_on_error(diagnostic const & finding);
 
-    /*!\brief Returns the number of levels of the described HIBF.
-     * \returns `0` if there are no user bins, `1` if there is only the top-level IBF, and so on.
-     * \details
-     * Only the user bins are considered.
-     */
-    [[nodiscard]] size_t number_of_levels() const;
-
     /*!\brief Checks whether the layout describes a consistent HIBF for the given configuration.
      * \param[in] config  The configuration the layout was or will be used with.
      * \param[in] handler Called for each finding. May be empty.
@@ -223,6 +226,7 @@ struct layout
      * \snippet test/snippet/hibf/layout/layout_validate.cpp validate
      */
     bool validate(config const & config, diagnostic_handler const & handler = throw_on_error) const;
+    //!\}
 
     size_t top_level_max_bin_id{};
     std::vector<max_bin> max_bins{};

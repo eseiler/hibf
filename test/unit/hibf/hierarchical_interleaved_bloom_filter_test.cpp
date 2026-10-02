@@ -130,8 +130,8 @@ TEST(hibf_test, build_from_invalid_layout)
 
     EXPECT_THROW_MSG((seqan::hibf::hierarchical_interleaved_bloom_filter{configuration, layout}),
                      std::invalid_argument,
-                     "[HIBF LAYOUT ERROR] The max bin 1 of Root-IBF is neither a merged bin nor the first "
-                     "technical bin of a user bin.");
+                     "[HIBF LAYOUT ERROR] The max bin (\"fullest_technical_bin_idx:\") of the Root-IBF is neither a "
+                     "merged bin nor the first technical bin of a user bin.");
 }
 
 // The max bins do not need to be sorted by level.

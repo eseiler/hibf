@@ -22,8 +22,9 @@
 #include <utility>     // for move
 #include <vector>      // for vector
 
-#include <hibf/config.hpp>                   // for config
-#include <hibf/layout/layout.hpp>            // for layout, operator<<
+#include <hibf/config.hpp>                                // for config
+#include <hibf/hierarchical_interleaved_bloom_filter.hpp> // for bin_kind
+#include <hibf/layout/layout.hpp>                         // for layout, operator<<
 #include <hibf/layout/prefixes.hpp>          // for layout_lower_level, layout_column_names, layout_fullest_techni...
 #include <hibf/misc/add_empty_bins.hpp>      // for add_empty_bins
 #include <hibf/misc/next_multiple_of_64.hpp> // for next_multiple_of_64
@@ -169,13 +170,18 @@ void seqan::hibf::layout::layout::clear()
 namespace
 {
 
-// A range of technical bins within one IBF. Either a single merged bin, or the technical bins of one user bin.
+// A range of technical bins within one IBF: a merged bin, or the technical bins of a single or split user bin.
+// Like hierarchical_interleaved_bloom_filter::ibf_bin_to_user_bin_id, merged bins have user bin bin_kind::merged.
 struct occupied_bins
 {
     size_t first{};
-    size_t last{}; // inclusive
-    bool is_merged{};
-    size_t user_bin{}; // 0 for merged bins
+    size_t last{};                     // inclusive
+    size_t user_bin{bin_kind::merged}; // a user bin index or bin_kind::merged
+
+    bool is_merged() const
+    {
+        return user_bin == bin_kind::merged;
+    }
 
     friend auto operator<=>(occupied_bins const &, occupied_bins const &) = default;
 };
@@ -200,11 +206,12 @@ occupied_bins const * find_first_occupied_bin(std::vector<occupied_bins> const &
     return range.empty() ? nullptr : std::addressof(range.front());
 }
 
-// "Root-IBF" for the top-level IBF, or "IBF 2;3" for the IBF below merged bin 3 of the IBF below merged bin 2 of the
-// top-level IBF. "IBF 0" is the IBF below merged bin 0 of the top-level IBF.
-std::string ibf_name(std::vector<size_t> const & path)
+// "the Root-IBF" for the top-level IBF ("The Root-IBF" at the start of a sentence), or "IBF 2;3" for the IBF below
+// merged bin 3 of the IBF below merged bin 2 of the top-level IBF. "IBF 0" is the IBF below merged bin 0 of the
+// top-level IBF.
+std::string ibf_name(std::vector<size_t> const & path, bool const sentence_start = false)
 {
-    std::string result{path.empty() ? "Root-IBF" : "IBF "};
+    std::string result{path.empty() ? (sentence_start ? "The Root-IBF" : "the Root-IBF") : "IBF "};
     for (size_t const technical_bin : path)
         std::format_to(std::back_inserter(result), "{};", technical_bin);
     if (!path.empty())
@@ -257,12 +264,10 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                           .ibf = ub.previous_TB_indices,
                           .user_bin = ub.idx,
                           .technical_bin = ub.storage_TB_id,
-                          .message = std::format("User bin {}: The technical bin range starting at {} with {} "
-                                                 "technical bin{} overflows.",
-                                                 ub.idx,
-                                                 ub.storage_TB_id,
-                                                 ub.number_of_technical_bins,
-                                                 (ub.number_of_technical_bins == 1u) ? "" : "s")});
+                          .message = std::format("In {}, the technical bins of user bin {} exceed the maximum number "
+                                                 "of technical bins of an IBF.",
+                                                 ibf_name(ub.previous_TB_indices),
+                                                 ub.idx)});
 
         if (auto it = std::ranges::find_if(ub.previous_TB_indices,
                                            [](size_t const merged_bin)
@@ -272,13 +277,15 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
             it != ub.previous_TB_indices.end())
         {
             std::vector<size_t> path(ub.previous_TB_indices.begin(), it);
-            std::string message =
-                std::format("User bin {}: The merged bin {} of {} on its path overflows.", ub.idx, *it, ibf_name(path));
+            std::string const name = ibf_name(path);
             return error({.what = code::technical_bin_overflow,
                           .ibf = std::move(path),
                           .user_bin = ub.idx,
                           .technical_bin = *it,
-                          .message = std::move(message)});
+                          .message = std::format("In {}, the merged bin on the path of user bin {} exceeds the "
+                                                 "maximum number of technical bins of an IBF.",
+                                                 name,
+                                                 ub.idx)});
         }
 
         if (ub.idx >= config.number_of_user_bins)
@@ -323,14 +330,14 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
             // Every user bin below a merged bin passes through it. Skip the entry if it repeats the previous one,
             // which is the case if the user bins below a merged bin are consecutive (e.g., compute_layout).
             // Other repetitions are removed after sorting.
-            occupied_bins const merged_bin{technical_bin, technical_bin, true, 0u};
+            occupied_bins const merged_bin{technical_bin, technical_bin, bin_kind::merged};
             if (auto & bins = ibfs[path].bins; bins.empty() || bins.back() != merged_bin)
                 bins.push_back(merged_bin);
             path.push_back(technical_bin);
         }
 
         size_t const last = ub.storage_TB_id + ub.number_of_technical_bins - 1u;
-        ibfs[path].bins.push_back({ub.storage_TB_id, last, false, ub.idx});
+        ibfs[path].bins.push_back({ub.storage_TB_id, last, ub.idx});
     }
 
     // Within each IBF, the occupied ranges must not overlap. Multiple user bins may pass through the same merged bin.
@@ -339,7 +346,9 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
     {
         auto & bins = ibf.bins;
         std::ranges::sort(bins);
-        bins.erase(std::ranges::unique(bins).begin(), bins.end()); // repeated merged bins; user bins are unique
+        // Each user bin below a merged bin adds the merged bin. Consecutive repetitions are skipped above; remove the
+        // others, so that each merged bin occurs once and is not reported as overlapping itself. User bins are unique.
+        bins.erase(std::ranges::unique(bins).begin(), bins.end());
         for (size_t i = 1u; i < bins.size(); ++i)
         {
             occupied_bins const & previous = bins[i - 1u];
@@ -350,11 +359,11 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                 // At most one of them is a merged bin: Two distinct merged bins cannot overlap.
                 auto describe = [](occupied_bins const & bin)
                 {
-                    return bin.is_merged ? std::string{"a merged bin"} : std::format("user bin {}", bin.user_bin);
+                    return bin.is_merged() ? std::string{"a merged bin"} : std::format("user bin {}", bin.user_bin);
                 };
                 return error({.what = code::overlapping_technical_bins,
                               .ibf = path,
-                              .user_bin = current.is_merged ? previous.user_bin : current.user_bin,
+                              .user_bin = current.is_merged() ? previous.user_bin : current.user_bin,
                               .technical_bin = current.first,
                               .message = std::format("In {}, technical bin {} is used by {} and by {}.",
                                                      ibf_name(path),
@@ -376,9 +385,9 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
         return error({.what = code::invalid_max_bin,
                       .ibf = path,
                       .technical_bin = id,
-                      .message = std::format("The max bin {} of {} is neither a merged bin nor the first technical "
-                                             "bin of a user bin.",
-                                             id,
+                      .message = std::format("The max bin (\"{}\") of {} is neither a merged bin nor the first "
+                                             "technical bin of a user bin.",
+                                             prefix::layout_fullest_technical_bin_idx,
                                              ibf_name(path))});
     };
 
@@ -388,22 +397,32 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
             return error({.what = code::top_level_max_bin_entry,
                           .ibf = std::vector<size_t>{},
                           .technical_bin = id,
-                          .message = "The max bins contain an entry for the Root-IBF, whose max bin is stored in "
-                                     "top_level_max_bin_id."});
+                          .message = std::format("The max bins contain an entry for the Root-IBF. The Root-IBF's max "
+                                                 "bin is given by top_level_max_bin_id (\"{}\"), not by the max bins "
+                                                 "(\"{}{}\").",
+                                                 prefix::layout_first_header_line,
+                                                 prefix::layout_header,
+                                                 prefix::layout_lower_level)});
 
         auto it = ibfs.find(path);
         if (it == ibfs.end())
             return error({.what = code::max_bin_without_ibf,
                           .ibf = path,
                           .technical_bin = id,
-                          .message = std::format("The max bins contain an entry for {}, which does not exist.",
+                          .message = std::format("The max bins (\"{}{}\") contain an entry for {}, which does not "
+                                                 "exist.",
+                                                 prefix::layout_header,
+                                                 prefix::layout_lower_level,
                                                  ibf_name(path))});
 
         if (it->second.has_max_bin)
             return error({.what = code::duplicate_max_bin,
                           .ibf = path,
                           .technical_bin = id,
-                          .message = std::format("The max bins contain more than one entry for {}.", ibf_name(path))});
+                          .message = std::format("The max bins (\"{}{}\") contain more than one entry for {}.",
+                                                 prefix::layout_header,
+                                                 prefix::layout_lower_level,
+                                                 ibf_name(path))});
 
         occupied_bins const * const max_bin = find_first_occupied_bin(it->second.bins, id);
         if (max_bin == nullptr)
@@ -414,10 +433,10 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                           .ibf = path,
                           .user_bin = max_bin->user_bin,
                           .technical_bin = id,
-                          .message = std::format("The max bin {} of {} spans {} technical bins, but at most {} are "
-                                                 "supported (next_multiple_of_64 of the {} technical bins of the "
-                                                 "Root-IBF).",
-                                                 id,
+                          .message = std::format("The max bin (\"{}\") of {} spans {} technical bins, but at most {} "
+                                                 "are supported (the Root-IBF's {} technical bins, rounded up to a "
+                                                 "multiple of 64).",
+                                                 prefix::layout_fullest_technical_bin_idx,
                                                  ibf_name(path),
                                                  span,
                                                  max_bin_limit,
@@ -430,7 +449,10 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
         if (!path.empty() && !ibf.has_max_bin)
             return error({.what = code::missing_max_bin,
                           .ibf = path,
-                          .message = std::format("The max bins contain no entry for {}.", ibf_name(path))});
+                          .message = std::format("The max bins (\"{}{}\") contain no entry for {}.",
+                                                 prefix::layout_header,
+                                                 prefix::layout_lower_level,
+                                                 ibf_name(path))});
 
     if (size_t const id = top_level_max_bin_id; find_first_occupied_bin(ibfs.at({}).bins, id) == nullptr)
         return invalid_max_bin({}, id);
@@ -474,13 +496,13 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                     .technical_bin = last,
                     .message = (last >= max_technical_bins)
                                  ? std::format("{} uses technical bin {}, but {} allows only {} technical bins.",
-                                               ibf_name(path),
+                                               ibf_name(path, true),
                                                last,
                                                tmax_name,
                                                max_technical_bins)
                                  : std::format("{} uses technical bin {}. With the empty bins added by the build "
                                                "(empty_bin_fraction {}), it exceeds the {} technical bins {} allows.",
-                                               ibf_name(path),
+                                               ibf_name(path, true),
                                                last,
                                                empty_bin_fraction,
                                                max_technical_bins,
@@ -492,16 +514,16 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
             report({.level = severity::warning,
                     .what = code::single_bin_ibf,
                     .ibf = path,
-                    .user_bin = bin.is_merged ? std::nullopt : std::optional<size_t>{bin.user_bin},
+                    .user_bin = bin.is_merged() ? std::nullopt : std::optional<size_t>{bin.user_bin},
                     .technical_bin = bin.first,
-                    .message = bin.is_merged
+                    .message = bin.is_merged()
                                  ? std::format("{} only contains merged bin {}. Moving the IBF below it up would "
                                                "save a level.",
-                                               ibf_name(path),
+                                               ibf_name(path, true),
                                                bin.first)
                                  : std::format("{} only contains user bin {}. Storing it in the parent IBF would "
                                                "save a level.",
-                                               ibf_name(path),
+                                               ibf_name(path, true),
                                                bin.user_bin)});
         }
 
@@ -531,7 +553,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                         .technical_bin = last,
                         .message = std::format("{} ends with {} empty technical bin{}, but {} {} expected. There is a "
                                                "total of {} technical bins and the empty_bin_fraction is {}.",
-                                               ibf_name(path),
+                                               ibf_name(path, true),
                                                trailing_empty,
                                                (trailing_empty == 1u) ? "" : "s",
                                                expected_empty,
@@ -547,12 +569,12 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                     .technical_bin = first_empty,
                     .message = (intermittent_empty == 1u)
                                  ? std::format("{} uses technical bins 0-{}, but technical bin {} is empty.",
-                                               ibf_name(path),
+                                               ibf_name(path, true),
                                                last,
                                                *first_empty)
                                  : std::format("{} uses technical bins 0-{}, but {} of them are empty; the first one "
                                                "is {}.",
-                                               ibf_name(path),
+                                               ibf_name(path, true),
                                                last,
                                                intermittent_empty,
                                                *first_empty)});
@@ -563,10 +585,10 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
 
 size_t seqan::hibf::layout::layout::number_of_levels() const
 {
-    size_t max_depth{};
+    size_t levels{};
     for (auto const & ub : user_bins)
-        max_depth = std::max(max_depth, ub.previous_TB_indices.size());
-    return user_bins.empty() ? 0u : max_depth + 1u;
+        levels = std::max(levels, ub.previous_TB_indices.size() + 1u);
+    return levels;
 }
 
 void seqan::hibf::layout::layout::throw_on_error(diagnostic const & finding)

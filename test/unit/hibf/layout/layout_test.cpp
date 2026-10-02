@@ -395,7 +395,7 @@ TEST(layout_test, validate_error_details)
         auto const [valid, diagnostics] = validate(layout);
         ASSERT_EQ(diagnostics.size(), 1u);
         EXPECT_EQ(diagnostics[0].ibf, (std::vector<size_t>{2u, 2u}));
-        EXPECT_EQ(diagnostics[0].message, "The max bins contain no entry for IBF 2;2.");
+        EXPECT_EQ(diagnostics[0].message, "The max bins (\"#LOWER_LEVEL_IBF\") contain no entry for IBF 2;2.");
     }
 
     // An overflowing merged bin is reported as technical bin of the IBF that contains it.
@@ -410,7 +410,8 @@ TEST(layout_test, validate_error_details)
         EXPECT_EQ(diagnostics[0].user_bin, 3u);
         EXPECT_EQ(diagnostics[0].technical_bin, overflowing);
         EXPECT_EQ(diagnostics[0].message,
-                  "User bin 3: The merged bin 18446744073709551552 of IBF 2 on its path overflows.");
+                  "In IBF 2, the merged bin on the path of user bin 3 exceeds the maximum number of technical bins "
+                  "of an IBF.");
     }
 
     // 2^64 - 64 technical bins are supported: next_multiple_of_64 does not overflow.
@@ -422,8 +423,9 @@ TEST(layout_test, validate_error_details)
     layout.max_bins.emplace_back(std::vector<size_t>{}, 2u);
     EXPECT_THROW_MSG(layout.validate(valid_config),
                      std::invalid_argument,
-                     "[HIBF LAYOUT ERROR] The max bins contain an entry for the Root-IBF, whose max bin is stored in "
-                     "top_level_max_bin_id.");
+                     "[HIBF LAYOUT ERROR] The max bins contain an entry for the Root-IBF. The Root-IBF's max bin is "
+                     "given by top_level_max_bin_id (\"#TOP_LEVEL_IBF\"), not by the max bins "
+                     "(\"#LOWER_LEVEL_IBF\").");
 }
 
 TEST(layout_test, validate_warnings_and_notes)
@@ -443,7 +445,7 @@ TEST(layout_test, validate_warnings_and_notes)
         EXPECT_EQ(diagnostics[1].what, code_t::empty_technical_bins);
         EXPECT_EQ(diagnostics[1].technical_bin, 3u);
         EXPECT_EQ(diagnostics[1].message,
-                  "Root-IBF uses technical bins 0-127, but 61 of them are empty; the first one is 3.");
+                  "The Root-IBF uses technical bins 0-127, but 61 of them are empty; the first one is 3.");
     }
 
     // tmax is not checked if it is 0.
@@ -461,7 +463,7 @@ TEST(layout_test, validate_warnings_and_notes)
             validate(layout, seqan::hibf::config{.number_of_user_bins = 6u, .tmax = 100u});
         ASSERT_EQ(diagnostics.size(), 2u);
         EXPECT_EQ(diagnostics[0].message,
-                  "Root-IBF uses technical bin 191, but tmax 100 (rounded up to a multiple of 64) allows only 128 "
+                  "The Root-IBF uses technical bin 191, but tmax 100 (rounded up to a multiple of 64) allows only 128 "
                   "technical bins.");
     }
 
@@ -549,12 +551,13 @@ TEST(layout_test, validate_empty_bins)
         auto const [valid, diagnostics] = validate(root_ibf(32u, 2u), {.number_of_user_bins = 32u, .tmax = 64u});
         ASSERT_EQ(diagnostics.size(), 2u);
         EXPECT_EQ(diagnostics[0].technical_bin, 62u);
-        EXPECT_EQ(diagnostics[0].message,
-                  "Root-IBF ends with 1 empty technical bin, but 0 are expected. There is a total of 64 technical bins "
-                  "and the empty_bin_fraction is 0.");
+        EXPECT_EQ(
+            diagnostics[0].message,
+            "The Root-IBF ends with 1 empty technical bin, but 0 are expected. There is a total of 64 technical bins "
+            "and the empty_bin_fraction is 0.");
         EXPECT_EQ(diagnostics[1].technical_bin, 1u);
         EXPECT_EQ(diagnostics[1].message,
-                  "Root-IBF uses technical bins 0-62, but 31 of them are empty; the first one is 1.");
+                  "The Root-IBF uses technical bins 0-62, but 31 of them are empty; the first one is 1.");
     }
     // 58 / (1 - 0.109375) > 64: The build uses 128 technical bins.
     {
@@ -562,11 +565,12 @@ TEST(layout_test, validate_empty_bins)
             validate(root_ibf(58u, 1u), {.number_of_user_bins = 58u, .tmax = 64u, .empty_bin_fraction = 0.109375});
         ASSERT_EQ(diagnostics.size(), 2u);
         EXPECT_EQ(diagnostics[0].message,
-                  "Root-IBF uses technical bin 57. With the empty bins added by the build (empty_bin_fraction "
+                  "The Root-IBF uses technical bin 57. With the empty bins added by the build (empty_bin_fraction "
                   "0.109375), it exceeds the 64 technical bins tmax allows.");
-        EXPECT_EQ(diagnostics[1].message,
-                  "Root-IBF ends with 70 empty technical bins, but 14 are expected. There is a total of 128 technical "
-                  "bins and the empty_bin_fraction is 0.109375.");
+        EXPECT_EQ(
+            diagnostics[1].message,
+            "The Root-IBF ends with 70 empty technical bins, but 14 are expected. There is a total of 128 technical "
+            "bins and the empty_bin_fraction is 0.109375.");
     }
 }
 
@@ -591,8 +595,8 @@ TEST(layout_test, validate_max_bin_split_beyond_root)
     EXPECT_EQ(diagnostics[0].ibf, std::vector<size_t>{1u});
     EXPECT_EQ(diagnostics[0].user_bin, 1u);
     EXPECT_EQ(diagnostics[0].message,
-              "The max bin 0 of IBF 1 spans 200 technical bins, but at most 64 are supported (next_multiple_of_64 of "
-              "the 2 technical bins of the Root-IBF).");
+              "The max bin (\"fullest_technical_bin_idx:\") of IBF 1 spans 200 technical bins, but at most 64 "
+              "are supported (the Root-IBF's 2 technical bins, rounded up to a multiple of 64).");
     EXPECT_THROW_MSG(layout.validate(config), std::invalid_argument, "[HIBF LAYOUT ERROR] " + diagnostics[0].message);
 }
 
@@ -612,7 +616,7 @@ TEST(layout_test, validate_ibf_names)
     EXPECT_TRUE(valid);
     ASSERT_EQ(diagnostics.size(), 2u);
     EXPECT_EQ(diagnostics[0].ibf, std::vector<size_t>{});
-    EXPECT_EQ(diagnostics[0].message, "Root-IBF uses technical bins 0-63, but technical bin 1 is empty.");
+    EXPECT_EQ(diagnostics[0].message, "The Root-IBF uses technical bins 0-63, but technical bin 1 is empty.");
     EXPECT_EQ(diagnostics[1].ibf, std::vector<size_t>{0u});
     EXPECT_EQ(diagnostics[1].message, "IBF 0 uses technical bins 0-63, but technical bin 1 is empty.");
 }
