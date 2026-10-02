@@ -4,13 +4,13 @@
 
 #include <gtest/gtest.h> // for Test, Message, AssertionResult, TestPartResult, CmpHelperEQ, CmpHelperEQFa...
 
-#include <algorithm>   // for transform
 #include <cstddef>     // for size_t
 #include <cstdint>     // for uint64_t
 #include <format>      // for format
 #include <functional>  // for function
 #include <limits>      // for numeric_limits
 #include <optional>    // for optional
+#include <ranges>      // for transform
 #include <sstream>     // for basic_stringstream, operator<<, stringstream, basic_ios, basic_iostream
 #include <stdexcept>   // for invalid_argument
 #include <string>      // for char_traits, allocator, basic_string, string
@@ -24,6 +24,7 @@
 #include <hibf/sketch/compute_sketches.hpp>     // for compute_sketches
 #include <hibf/sketch/estimate_kmer_counts.hpp> // for estimate_kmer_counts
 #include <hibf/sketch/hyperloglog.hpp>          // for hyperloglog
+#include <hibf/test/expect_range_eq.hpp>        // for EXPECT_RANGE_EQ
 #include <hibf/test/expect_throw_msg.hpp>       // for EXPECT_THROW_MSG
 
 TEST(layout_test, printing_max_bins)
@@ -543,9 +544,7 @@ TEST(layout_test, validate_empty_bins)
             validate(root_ibf(user_bins, stride),
                      {.number_of_user_bins = user_bins, .tmax = 64u, .empty_bin_fraction = empty_bin_fraction});
         EXPECT_TRUE(valid);
-        std::vector<code_t> codes(diagnostics.size());
-        std::ranges::transform(diagnostics, codes.begin(), &diagnostic_t::what);
-        EXPECT_EQ(codes, expected);
+        EXPECT_RANGE_EQ(diagnostics | std::views::transform(&diagnostic_t::what), expected);
     }
 
     // Alternating without empty_bin_fraction: Intermittent empty bins do not count as empty bins at the end.

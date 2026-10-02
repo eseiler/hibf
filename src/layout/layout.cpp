@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2016-2026, Knut Reinert & MPI für molekulare Genetik
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <algorithm>   // for find_if, sort, unique, adjacent_find, equal_range, mismatch, transform, max
+#include <algorithm>   // for find_if, sort, unique, adjacent_find, equal_range, mismatch, max
 #include <cassert>     // for assert
 #include <charconv>    // for from_chars, from_chars_result
 #include <cmath>       // for floor
@@ -15,7 +15,8 @@
 #include <map>         // for map
 #include <memory>      // for addressof
 #include <optional>    // for optional, nullopt
-#include <ranges>      // for iota
+#include <ranges>      // for iota, to, transform
+#include <set>         // for set
 #include <stdexcept>   // for invalid_argument
 #include <string>      // for basic_string, getline, string
 #include <string_view> // for operator<<, string_view, operator==, basic_string_view
@@ -186,19 +187,6 @@ struct occupied_bins
     friend auto operator<=>(occupied_bins const &, occupied_bins const &) = default;
 };
 
-struct ibf_bins
-{
-    ibf_bins() = default;
-    ibf_bins(ibf_bins const &) = default;
-    ibf_bins & operator=(ibf_bins const &) = default;
-    ibf_bins(ibf_bins &&) = default;
-    ibf_bins & operator=(ibf_bins &&) = default;
-    ~ibf_bins() = default;
-
-    std::vector<occupied_bins> bins{};
-    bool has_max_bin{};
-};
-
 // The merged bin or user bin starting at `technical_bin` in `bins` (sorted, non-overlapping), or nullptr.
 occupied_bins const * find_first_occupied_bin(std::vector<occupied_bins> const & bins, size_t const technical_bin)
 {
@@ -299,8 +287,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
 
     // Checks that concern the set of user bin indices.
     {
-        std::vector<size_t> indices(user_bins.size());
-        std::ranges::transform(user_bins, indices.begin(), &user_bin::idx);
+        auto indices = user_bins | std::views::transform(&user_bin::idx) | std::ranges::to<std::vector>();
         std::ranges::sort(indices);
 
         if (auto it = std::ranges::adjacent_find(indices); it != indices.end())
@@ -320,7 +307,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
     }
 
     // An IBF is identified by the merged bins on the path from the top-level IBF.
-    std::map<std::vector<size_t>, ibf_bins> ibfs{};
+    std::map<std::vector<size_t>, std::vector<occupied_bins>> ibfs{};
 
     for (auto const & ub : user_bins)
     {
@@ -331,20 +318,19 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
             // which is the case if the user bins below a merged bin are consecutive (e.g., compute_layout).
             // Other repetitions are removed after sorting.
             occupied_bins const merged_bin{technical_bin, technical_bin, bin_kind::merged};
-            if (auto & bins = ibfs[path].bins; bins.empty() || bins.back() != merged_bin)
+            if (auto & bins = ibfs[path]; bins.empty() || bins.back() != merged_bin)
                 bins.push_back(merged_bin);
             path.push_back(technical_bin);
         }
 
         size_t const last = ub.storage_TB_id + ub.number_of_technical_bins - 1u;
-        ibfs[path].bins.push_back({ub.storage_TB_id, last, ub.idx});
+        ibfs[path].push_back({ub.storage_TB_id, last, ub.idx});
     }
 
     // Within each IBF, the occupied ranges must not overlap. Multiple user bins may pass through the same merged bin.
     // If all adjacent ranges (sorted by first technical bin) are disjoint, all ranges are disjoint.
-    for (auto & [path, ibf] : ibfs)
+    for (auto & [path, bins] : ibfs)
     {
-        auto & bins = ibf.bins;
         std::ranges::sort(bins);
         // Each user bin below a merged bin adds the merged bin. Consecutive repetitions are skipped above; remove the
         // others, so that each merged bin occurs once and is not reported as overlapping itself. User bins are unique.
@@ -377,7 +363,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
     // The build sizes its FPR correction table by the number of technical bins of the Root-IBF and looks it up with the
     // number of technical bins of each max bin (build_index, construct_ibf). This only becomes relevant once we expect
     // layouts where tmax is not a strict upper bound for the number of technical bins of an IBF.
-    size_t const root_technical_bins = ibfs.at({}).bins.back().last + 1u;  // bins are sorted and disjoint
+    size_t const root_technical_bins = ibfs.at({}).back().last + 1u;       // bins are sorted and disjoint
     size_t const max_bin_limit = next_multiple_of_64(root_technical_bins); // no overflow, see technical_bin_overflow
 
     auto invalid_max_bin = [&error](std::vector<size_t> const & path, size_t const id)
@@ -391,6 +377,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                                              ibf_name(path))});
     };
 
+    std::set<std::vector<size_t>> ibfs_with_max_bin{};
     for (auto const & [path, id] : max_bins)
     {
         if (path.empty())
@@ -415,7 +402,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                                                  prefix::layout_lower_level,
                                                  ibf_name(path))});
 
-        if (it->second.has_max_bin)
+        if (!ibfs_with_max_bin.insert(path).second)
             return error({.what = code::duplicate_max_bin,
                           .ibf = path,
                           .technical_bin = id,
@@ -424,7 +411,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                                                  prefix::layout_lower_level,
                                                  ibf_name(path))});
 
-        occupied_bins const * const max_bin = find_first_occupied_bin(it->second.bins, id);
+        occupied_bins const * const max_bin = find_first_occupied_bin(it->second, id);
         if (max_bin == nullptr)
             return invalid_max_bin(path, id);
 
@@ -441,12 +428,10 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                                                  span,
                                                  max_bin_limit,
                                                  root_technical_bins)});
-
-        it->second.has_max_bin = true;
     }
 
-    for (auto const & [path, ibf] : ibfs)
-        if (!path.empty() && !ibf.has_max_bin)
+    for (auto const & [path, bins] : ibfs)
+        if (!path.empty() && !ibfs_with_max_bin.contains(path))
             return error({.what = code::missing_max_bin,
                           .ibf = path,
                           .message = std::format("The max bins (\"{}{}\") contain no entry for {}.",
@@ -454,7 +439,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                                                  prefix::layout_lower_level,
                                                  ibf_name(path))});
 
-    if (size_t const id = top_level_max_bin_id; find_first_occupied_bin(ibfs.at({}).bins, id) == nullptr)
+    if (size_t const id = top_level_max_bin_id; find_first_occupied_bin(ibfs.at({}), id) == nullptr)
         return invalid_max_bin({}, id);
 
     // Warnings and notes do not affect the result.
@@ -486,9 +471,8 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
         return next_multiple_of_64(add_empty_bins(last + 1u, empty_bin_fraction));
     };
 
-    for (auto const & [path, ibf] : ibfs)
+    for (auto const & [path, bins] : ibfs)
     {
-        auto const & bins = ibf.bins;
         std::string const name = ibf_name(path, true); // all messages below start with it
         size_t const last = bins.back().last;          // bins are sorted and disjoint
         std::optional<size_t> const built = built_technical_bins(last);
