@@ -465,9 +465,13 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
     // tmax is a multiple of 64. config::validate_and_set_defaults() rounds tmax up to a multiple of 64.
     bool const check_tmax = config.tmax != 0u && config.tmax <= max_ibf_technical_bins;
     size_t const max_technical_bins = check_tmax ? next_multiple_of_64(config.tmax) : max_size_t;
-    std::string const tmax_name = (!check_tmax || config.tmax == max_technical_bins)
-                                    ? std::string{"tmax"}
-                                    : std::format("tmax {} (rounded up to a multiple of 64)", config.tmax);
+    std::string const tmax_name = [&]()
+    {
+        std::string result{"tmax"};
+        if (check_tmax && config.tmax != max_technical_bins)
+            result = std::format("tmax {} (rounded up to a multiple of 64)", config.tmax);
+        return result;
+    }();
     // The build adds empty bins to each IBF (interleaved_bloom_filter's constructor). An IBF whose last used technical
     // bin is `last` has next_multiple_of_64(add_empty_bins(last + 1, empty_bin_fraction)) technical bins.
     // std::nullopt if this does not fit into size_t: add_empty_bins is checked in floating point first.
@@ -485,7 +489,8 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
     for (auto const & [path, ibf] : ibfs)
     {
         auto const & bins = ibf.bins;
-        size_t const last = bins.back().last; // bins are sorted and disjoint
+        std::string const name = ibf_name(path, true); // all messages below start with it
+        size_t const last = bins.back().last;          // bins are sorted and disjoint
         std::optional<size_t> const built = built_technical_bins(last);
 
         // max_technical_bins is a multiple of 64: last >= max_technical_bins implies *built > max_technical_bins.
@@ -496,13 +501,13 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                     .technical_bin = last,
                     .message = (last >= max_technical_bins)
                                  ? std::format("{} uses technical bin {}, but {} allows only {} technical bins.",
-                                               ibf_name(path, true),
+                                               name,
                                                last,
                                                tmax_name,
                                                max_technical_bins)
                                  : std::format("{} uses technical bin {}. With the empty bins added by the build "
                                                "(empty_bin_fraction {}), it exceeds the {} technical bins {} allows.",
-                                               ibf_name(path, true),
+                                               name,
                                                last,
                                                empty_bin_fraction,
                                                max_technical_bins,
@@ -519,11 +524,11 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                     .message = bin.is_merged()
                                  ? std::format("{} only contains merged bin {}. Moving the IBF below it up would "
                                                "save a level.",
-                                               ibf_name(path, true),
+                                               name,
                                                bin.first)
                                  : std::format("{} only contains user bin {}. Storing it in the parent IBF would "
                                                "save a level.",
-                                               ibf_name(path, true),
+                                               name,
                                                bin.user_bin)});
         }
 
@@ -553,7 +558,7 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                         .technical_bin = last,
                         .message = std::format("{} ends with {} empty technical bin{}, but {} {} expected. There is a "
                                                "total of {} technical bins and the empty_bin_fraction is {}.",
-                                               ibf_name(path, true),
+                                               name,
                                                trailing_empty,
                                                (trailing_empty == 1u) ? "" : "s",
                                                expected_empty,
@@ -569,12 +574,12 @@ bool seqan::hibf::layout::layout::validate(config const & config, diagnostic_han
                     .technical_bin = first_empty,
                     .message = (intermittent_empty == 1u)
                                  ? std::format("{} uses technical bins 0-{}, but technical bin {} is empty.",
-                                               ibf_name(path, true),
+                                               name,
                                                last,
                                                *first_empty)
                                  : std::format("{} uses technical bins 0-{}, but {} of them are empty; the first one "
                                                "is {}.",
-                                               ibf_name(path, true),
+                                               name,
                                                last,
                                                intermittent_empty,
                                                *first_empty)});

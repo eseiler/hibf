@@ -531,7 +531,9 @@ TEST(layout_test, validate_empty_bins)
         {"empty bins without empty_bin_fraction", 57u, 1u, 0.0, {code_t::unexpected_empty_bins}},
         {"as many empty bins as expected", 57u, 1u, 0.109375, {}},
         {"one empty bin too many", 56u, 1u, 0.109375, {code_t::unexpected_empty_bins}},
-        {"alternating", 32u, 2u, 0.015625, {code_t::empty_technical_bins}}}; // TB 63 is the only trailing empty bin
+        {"alternating", 32u, 2u, 0.015625, {code_t::empty_technical_bins}}, // TB 63 is the only trailing empty bin
+        {"technical bins with empty bins do not fit into size_t", 2u, size_t{1} << 62, 0.6,
+         {code_t::technical_bin_exceeds_tmax, code_t::empty_technical_bins}}};
     // clang-format on
 
     for (auto const & [description, user_bins, stride, empty_bin_fraction, expected] : test_cases)
